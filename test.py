@@ -1,59 +1,27 @@
 import wx
-import wx.grid as gridlib
 
-########################################################################
-class LeftPanel(wx.Panel):
-    """"""
+class MainFrame(wx.Frame):
 
-    #----------------------------------------------------------------------
-    def __init__(self, parent):
-        """Constructor"""
-        wx.Panel.__init__(self, parent=parent)
+    def __init__(self,parent,id,title,position,size):
+        wx.Frame.__init__(self, parent, id, title, position, size)
+        toolbar = self.CreateToolBar()
+        tool = toolbar.AddLabelTool(wx.ID_ANY, 'TEST', wx.Bitmap('Icons/folder32.png')) #open
+        toolbar.Realize()
+        tool = toolbar.AddLabelTool(wx.ID_ANY, 'TEST2', wx.Bitmap('Icons/arrowright32.png')) #generate
+        toolbar.Realize()
+        self.split1 = wx.SplitterWindow(self)
+        self.split2 = wx.SplitterWindow(self.split1)
 
-        grid = gridlib.Grid(self)
-        grid.CreateGrid(25,12)
+        self.bottompanel = wx.Panel(self.split1)
+        self.topleftpanel = wx.Panel(self.split2)
+        self.toprightpanel = wx.Panel(self.split2)
+        self.topleftpanel.SetBackgroundColour('sky Blue')
 
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(grid, 0, wx.EXPAND)
-        self.SetSizer(sizer)
-
-########################################################################
-class RightPanel(wx.Panel):
-    """"""
-
-    #----------------------------------------------------------------------
-    def __init__(self, parent):
-        """Constructor"""
-        wx.Panel.__init__(self, parent=parent)
-
-        grid = gridlib.Grid(self)
-        grid.CreateGrid(25,12)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(grid, 0, wx.EXPAND)
-        self.SetSizer(sizer)
+        self.split1.SplitHorizontally(self.split2, self.bottompanel)
+        self.split2.SplitVertically(self.topleftpanel, self.toprightpanel)
 
 
-class MyForm(wx.Frame):
-
-    def __init__(self):
-        wx.Frame.__init__(self, None, wx.ID_ANY, "Splitter Tutorial")
-
-        splitter = wx.SplitterWindow(self)
-        leftP = LeftPanel(splitter)
-        rightP = RightPanel(splitter)
-
-        # split the window
-        splitter.SplitVertically(leftP, rightP)
-        splitter.SetMinimumPaneSize(20)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(splitter, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-
-# Run the program
-if __name__ == "__main__":
-    app = wx.App(False)
-    frame = MyForm()
-    frame.Show()
-    app.MainLoop()
+app = wx.App(0)
+win = MainFrame(None, -1, "Hello!", (50, 50), (600, 400))
+win.Show()
+app.MainLoop()

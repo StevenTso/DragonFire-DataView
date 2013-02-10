@@ -2,7 +2,7 @@ import os
 from wx.lib import sheet
 import wx
 import wx.grid as gridlib
-
+import wx.lib.agw.hyperlink as hl
 wildcard = "Python source (*.txt)|*.txt|" \
             "All files (*.*)|*.*"
 num_lines = 10;
@@ -20,32 +20,6 @@ cuttoff_freq = 0.1
 
 ID_BUTTON=100
 
-class LeftPanel(wx.Panel):
-    def __init__(self, parent):
-        """Constructor"""
-        wx.Panel.__init__(self, parent=parent)
-
-        grid = gridlib.Grid(self)
-        grid.CreateGrid(num_lines,6)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(grid, 0, wx.EXPAND)
-        self.SetSizer(sizer)
-
-class RightPanel(wx.Panel):      
-    def __init__(self, parent):
-        
-        """Constructor"""
-        wx.Panel.__init__(self, parent=parent)
-
-        grid = gridlib.Grid(self)
-        grid.CreateGrid(num_lines,6)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(grid, 0, wx.EXPAND)
-        self.SetSizer(sizer)
-
-
 class Dragon(wx.Frame):
 
     def __init__(self, *args, **kwargs):
@@ -54,7 +28,7 @@ class Dragon(wx.Frame):
         self.InitUI()
                 
     def InitUI(self):
-        self.SetSize((800, 600))
+        self.SetSize((1200, 650))
         self.SetTitle('DF Smart Data')
         self.Centre()
 
@@ -90,74 +64,69 @@ class Dragon(wx.Frame):
 
         #---TOOLBARS---#
         toolbar = self.CreateToolBar()
-        tool = toolbar.AddLabelTool(wx.ID_ANY, 'TEST', wx.Bitmap('Icons/folder32.png')) #open
-        toolbar.Realize()
-        tool = toolbar.AddLabelTool(wx.ID_ANY, 'TEST2', wx.Bitmap('Icons/arrowright32.png')) #generate
+        open = toolbar.AddLabelTool(wx.ID_ANY, 'Open', wx.Bitmap('Icons/folder32.png')) #open
+        self.Bind(wx.EVT_TOOL, self.OnOpen, open)
+        generate = toolbar.AddLabelTool(wx.ID_ANY, 'Generate', wx.Bitmap('Icons/arrowright32.png')) #generate
+        self.Bind(wx.EVT_TOOL, self.OnOpen, generate)
         toolbar.Realize()
         #self.Bind(wx.EVT_TOOL, self.OnQuit, tool)
 
-        #---TOP PANEL---#
-        box = wx.BoxSizer(wx.VERTICAL)
-        toolbar2 = wx.ToolBar(self, wx.TB_HORIZONTAL | wx.TB_TEXT)
-        
+        #_____________________PANELS______________________________#
+        self.split1 = wx.SplitterWindow(self)
+        self.split2 = wx.SplitterWindow(self.split1)
+
+        #---SPREADSHEET---#
+        self.topleftpanel = wx.Panel(self.split2)
+        self.toprightpanel = wx.Panel(self.split2)
+
+        self.gridL = gridlib.Grid(self.topleftpanel)
+        self.gridL.CreateGrid(num_lines,6)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.gridL, 1, wx.EXPAND, 5)
+        self.topleftpanel.SetSizer(sizer)
+
+
+        self.gridR = gridlib.Grid(self.toprightpanel)
+        self.gridR.CreateGrid(num_lines,6)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.gridR, 1, wx.EXPAND, 5)
+        self.toprightpanel.SetSizer(sizer)
+
+
+
+        #---BOTTOM PANEL---#   
+        fonts = ['Times New Roman', 'Times', 'Courier', 'Courier New', 'Helvetica', 'Sans', 'verdana', 'utkal', 'aakar', 'Arial']
+        self.bottompanel = wx.Panel(self.split1)
+        toolbar2 = wx.ToolBar(self.bottompanel, wx.TB_HORIZONTAL | wx.TB_TEXT)
         self.position = wx.TextCtrl(toolbar2)
-        fonts = ['Times New Roman', 'Times', 'Courier', 'Courier New', 'Helvetica',
-                'Sans', 'verdana', 'utkal', 'aakar', 'Arial']
-        font_sizes = ['10', '11', '12', '14', '16']
-
-        font = wx.ComboBox(toolbar2, -1, value = 'Times', choices=fonts, size=(100, -1),
-                style=wx.CB_DROPDOWN)
-        
-        font_height = wx.ComboBox(toolbar2, -1, value = '10',  choices=font_sizes,
-                size=(50, -1), style=wx.CB_DROPDOWN)
-
+        font = wx.ComboBox(toolbar2, -1, value = 'Times', choices=fonts, size=(100, -1), style=wx.CB_DROPDOWN)
+        font_height = wx.ComboBox(toolbar2, -1, value = '10',  choices=['10', '11', '12', '14', '16'], size=(50, -1), style=wx.CB_DROPDOWN)
         toolbar2.AddControl(self.position)
-        
+        toolbar2.AddControl(wx.StaticText(toolbar2, -1, '  '))
         toolbar2.AddControl(font)
+        toolbar2.AddControl(wx.StaticText(toolbar2, -1, '  '))
         toolbar2.AddControl(font_height)
         toolbar2.AddSeparator()
-        bold = wx.Bitmap('Icons/folder32.png')
-        
-        toolbar2.AddCheckTool(-1, bold)
-        italic = wx.Bitmap('Icons/folder32.png')
-        toolbar2.AddCheckTool(-1, italic)
-        under = wx.Bitmap('Icons/folder32.png')
-        
-        toolbar2.AddCheckTool(-1, under)
+        bold = wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        toolbar2.AddCheckTool(-1, bold , shortHelp = 'Bold')
+        italic = wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        toolbar2.AddCheckTool(-1, italic,  shortHelp = 'Italic')
+        under = wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
+        toolbar2.AddCheckTool(-1, under, shortHelp = 'Underline')
         toolbar2.AddSeparator()
-        toolbar2.AddLabelTool(-1, '', wx.Bitmap('Icons/folder32.png'))
-        toolbar2.AddLabelTool(-1, '', wx.Bitmap('Icons/folder32.png'))
-        toolbar2.AddLabelTool(-1, '', wx.Bitmap('Icons/folder32.png'))
+        toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Align Left', '')
+        toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Center', '')
+        toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Align Right', '')
 
-        box.Add(toolbar2)
-        box.Add((5,10) , 0)
-        
-        """
-        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-        
-        button1 = wx.Button(self, ID_BUTTON+1, "F3 View")
-        self.sizer2.Add(button1, 1, wx.EXPAND)
-        """
         #---IMAGE---#
-        """
+        
         image = 'Icons/article32.png'
         img = wx.Image(image, wx.BITMAP_TYPE_ANY)
-    	self.sBmp = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(img))
-        """
-        #---SPREADSHEET---#        
-        
-        splitter = wx.SplitterWindow(self)
-        leftP = LeftPanel(splitter)
-        rightP = RightPanel(splitter)
+    	self.sBmp = wx.StaticBitmap(self.bottompanel, wx.ID_ANY, wx.BitmapFromImage(img), (1100,10))
 
-        # split the window
-        splitter.SplitVertically(leftP, rightP)
-        splitter.SetMinimumPaneSize(25)
+        self.split1.SplitHorizontally(self.split2, self.bottompanel)
+        self.split2.SplitVertically(self.topleftpanel, self.toprightpanel)
 
-        sizer = wx.BoxSizer(wx.BOTTOM)
-        sizer.Add(splitter, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-        
         self.Show(True)
     
     def OnOpen(self, e):
@@ -196,6 +165,7 @@ class Dragon(wx.Frame):
         self.Close()
 
     def OnAbout(self, e):
+        hyper1 = hl.HyperLinkCtrl(self.bottompanel, -1, "Basic Electronixs", pos=(100, 250), URL="http://www.BasicElectronixs.com/")
         self.Close()
 
     def parser():
