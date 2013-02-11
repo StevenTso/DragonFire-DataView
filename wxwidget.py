@@ -12,6 +12,7 @@ ACCEL_Z = []
 GYRO_X = []
 GYRO_Y = []
 GYRO_Z = []
+FORMATTED_DATA = []
 # some constants
 samp_rate = 20
 sim_time = 60
@@ -20,13 +21,15 @@ cuttoff_freq = 0.1
 
 ID_BUTTON=100
 
-class parser:
+class graphParser:
     def __init__(self, path):
         #for filePath in path:
         #   stringPath.append(filePath)
         stringPath = ''.join(path)
 
-        num_lines= sum(1 for line in open(stringPath, 'r'))
+        global num_lines
+        num_lines = sum(1 for line in open(stringPath, 'r'))
+
         f = open(stringPath, 'r')
         for var0 in range(0, num_lines):
             line = f.readline();
@@ -45,6 +48,7 @@ class parser:
                 #parsed_line from string ---> int format
                 parsed_line[var1] = int(parsed_line[var1])
 
+            global ACCEL_X, ACCEL_Y, ACCEL_Z, GYRO_X, GYRO_Y, GYRO_Z    
             ACCEL_X.append(parsed_line[0]);
             ACCEL_Y.append(parsed_line[1]);
             ACCEL_Z.append(parsed_line[2]);
@@ -52,6 +56,21 @@ class parser:
             GYRO_Y.append(parsed_line[4]);
             GYRO_Z.append(parsed_line[5]);
 
+class viewParser:
+    def __init__(self, path):
+        global FORMATTED_DATA
+        FORMATTED_DATA = []
+        graphParser(path)
+        for var in range(0, num_lines):
+            ax = str(ACCEL_X[var]).zfill(5) + "    |    "
+            ay = str(ACCEL_X[var]).zfill(5) + "    |    "
+            az = str(ACCEL_X[var]).zfill(5) + "    |    "
+            gx = str(ACCEL_X[var]).zfill(5) + "    |    "
+            gy = str(ACCEL_X[var]).zfill(5) + "    |    "
+            gz = str(ACCEL_X[var]).zfill(5) + "   |"
+            newLine = ax + ay + az + gx + gy + gz
+            FORMATTED_DATA.append(newLine)
+            
 class Dragon(wx.Frame):
 
     def __init__(self, *args, **kwargs):
@@ -107,23 +126,19 @@ class Dragon(wx.Frame):
         self.split1 = wx.SplitterWindow(self)
         self.split2 = wx.SplitterWindow(self.split1)
 
-        #---SPREADSHEET---#
+        #---TEXT FRAMES---#
         self.topleftpanel = wx.Panel(self.split2)
         self.toprightpanel = wx.Panel(self.split2)
 
-        self.gridL = gridlib.Grid(self.topleftpanel)
-        self.gridL.CreateGrid(num_lines,6)
+        self.textL = wx.TextCtrl(self.topleftpanel, 1, style=wx.TE_MULTILINE)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.gridL, 1, wx.EXPAND, 5)
+        sizer.Add(self.textL, 1, wx.EXPAND, 3)
         self.topleftpanel.SetSizer(sizer)
 
-
-        self.gridR = gridlib.Grid(self.toprightpanel)
-        self.gridR.CreateGrid(num_lines,6)
+        self.textR = wx.TextCtrl(self.toprightpanel, 1, style=wx.TE_MULTILINE)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.gridR, 1, wx.EXPAND, 5)
+        sizer.Add(self.textR, 1, wx.EXPAND, 4)
         self.toprightpanel.SetSizer(sizer)
-
 
 
         #---BOTTOM PANEL---#   
@@ -172,7 +187,12 @@ class Dragon(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             paths = dlg.GetPaths()
             #for path in paths:
-            parser(paths)
+            graphParser(paths)
+            viewParser(paths)
+            self.textL.AppendText("ACCEL_X |  ACCEL_Y  |  ACCEL_Z   |   GYRO_X  |   GYRO_Y   |   GYRO_Z  |\n")
+            for i in range(0, num_lines):
+                self.textL.AppendText(FORMATTED_DATA[i])
+                self.textL.AppendText('\n')
 
         dlg.Destroy()
 
