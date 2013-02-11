@@ -94,10 +94,17 @@ class Dragon(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnSave, save)
         self.Bind(wx.EVT_MENU, self.OnGenerate, generate)
 
+        #Edit
+        editMenu = wx.Menu()
+        undo = editMenu.Append(wx.ID_ANY, 'Undo')
+        redo = editMenu.Append(wx.ID_ANY, 'Redo')
+        self.Bind(wx.EVT_MENU, self.OnUndoKeyPress, undo)
+        self.Bind(wx.EVT_MENU, self.OnRedoKeyPress, redo)
+        
         #View
         viewMenu = wx.Menu()
         stats = viewMenu.Append(wx.ID_ANY, '&Stats')
-        graphs = viewMenu.Append(wx.ID_ANY, '&Graphs')
+        graphs = viewMenu.Append(wx.ID_ANY, 'Graphs')
         self.Bind(wx.EVT_MENU, self.OnStats, stats)
         self.Bind(wx.EVT_MENU, self.OnGraphs, graphs)
 
@@ -109,6 +116,7 @@ class Dragon(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnAbout, about)
 
         menubar.Append(fileMenu, '&File')
+        menubar.Append(editMenu, '&Edit')
         menubar.Append(viewMenu, '&View')
         menubar.Append(helpMenu, '&Help')
         self.SetMenuBar(menubar)
@@ -132,14 +140,15 @@ class Dragon(wx.Frame):
 
         self.textL = wx.TextCtrl(self.topleftpanel, 1, style=wx.TE_MULTILINE)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.textL, 1, wx.EXPAND, 3)
+        sizer.Add(self.textL, wx.ID_ANY, wx.EXPAND, 3)
         self.topleftpanel.SetSizer(sizer)
+        self.textL.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
 
         self.textR = wx.TextCtrl(self.toprightpanel, 1, style=wx.TE_MULTILINE)
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.textR, 1, wx.EXPAND, 4)
         self.toprightpanel.SetSizer(sizer)
-
+        self.textR.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
 
         #---BOTTOM PANEL---#   
         fonts = ['Times New Roman', 'Times', 'Courier', 'Courier New', 'Helvetica', 'Sans', 'verdana', 'utkal', 'aakar', 'Arial']
@@ -217,6 +226,32 @@ class Dragon(wx.Frame):
     def OnAbout(self, e):
         hyper1 = hl.HyperLinkCtrl(self.bottompanel, -1, "Basic Electronixs", pos=(100, 250), URL="http://www.BasicElectronixs.com/")
         self.Close()
+
+    #def OnTextChange(self, e):
+        #self.textL.Undo()
+    def OnUndoKeyPress(self, e):
+        if wx.Window.FindFocus() == self.textL:
+            self.textL.Undo()
+        else:
+            self.textR.Undo()
+
+    def OnRedoKeyPress(self, e):
+        if wx.Window.FindFocus() == self.textL:
+            self.textL.Redo()
+        else:
+            self.textR.Redo()
+            
+
+    def OnKeyPress(self, e):
+        keycode = e.GetKeyCode()
+        #Undo Event
+        if keycode == 90 and e.CmdDown():
+            self.OnUndoKeyPress(self)
+        #Redo Event
+        elif keycode == 89 and e.CmdDown():
+            self.OnRedoKeyPress(self)
+        else:
+            e.Skip()
 
 
 
