@@ -194,6 +194,7 @@ class Dragon(wx.Frame):
             style=wx.OPEN | wx.MULTIPLE | wx.CHANGE_DIR
             )
         if dlg.ShowModal() == wx.ID_OK:
+            self.textL.Clear()
             paths = dlg.GetPaths()
             #for path in paths:
             graphParser(paths)
