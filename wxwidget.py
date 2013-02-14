@@ -5,6 +5,7 @@ import wx.grid as gridlib
 import wx.lib.agw.hyperlink as hl
 wildcard = "Python source (*.txt)|*.txt|" \
             "All files (*.*)|*.*"
+
 num_lines = 10;
 ACCEL_X = []
 ACCEL_Y = []
@@ -13,6 +14,8 @@ GYRO_X = []
 GYRO_Y = []
 GYRO_Z = []
 FORMATTED_DATA = []
+
+
 # some constants
 samp_rate = 20
 sim_time = 60
@@ -81,8 +84,7 @@ class Dragon(wx.Frame):
     def InitUI(self):
         #wx.Frame(parent, style=wx.MINIMIZE_BOX)
         #self.Maximize(not self.IsMaximized())
-
-        self.SetSize((1200, 650))
+        self.SetSize((1200, 800))
         self.SetTitle('DF Smart Data')
         self.Centre()
 
@@ -124,15 +126,16 @@ class Dragon(wx.Frame):
         menubar.Append(helpMenu, '&Help')
         self.SetMenuBar(menubar)
 
-        #---TOOLBARS---#
-        toolbar = self.CreateToolBar()
-        open = toolbar.AddLabelTool(wx.ID_ANY, 'Open', wx.Bitmap('Icons/folder32.png')) #open
+        #---1st TOOLBAR---#
+        toolbar1 = self.CreateToolBar()
+        open = toolbar1.AddLabelTool(wx.ID_ANY, 'Open', wx.Bitmap('Icons/folder32.png')) #open
         self.Bind(wx.EVT_TOOL, self.OnOpen, open)
-        generate = toolbar.AddLabelTool(wx.ID_ANY, 'Generate', wx.Bitmap('Icons/arrowright32.png')) #generate
+        generate = toolbar1.AddLabelTool(wx.ID_ANY, 'Generate', wx.Bitmap('Icons/arrowright32.png')) #generate
         self.Bind(wx.EVT_TOOL, self.OnOpen, generate)
-        toolbar.Realize()
-        #self.Bind(wx.EVT_TOOL, self.OnQuit, tool)
+        toolbar1.Realize()
 
+        #---2nd DOWN---#
+        
         #_____________________PANELS______________________________#
         self.split1 = wx.SplitterWindow(self)
         self.split2 = wx.SplitterWindow(self.split1)
@@ -141,7 +144,7 @@ class Dragon(wx.Frame):
         self.topleftpanel = wx.Panel(self.split2)
         self.toprightpanel = wx.Panel(self.split2)
 
-        self.textL = wx.TextCtrl(self.topleftpanel, 1,style=wx.TE_MULTILINE)
+        self.textL = wx.TextCtrl(self.topleftpanel, 1, style=wx.TE_MULTILINE)
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.textL, wx.ID_ANY, wx.EXPAND, 3)
         self.topleftpanel.SetSizer(sizer)
@@ -153,7 +156,56 @@ class Dragon(wx.Frame):
         self.toprightpanel.SetSizer(sizer)
         self.textR.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
 
-        #---BOTTOM PANEL---#   
+        #---BOTTOM PANEL---#
+        xOffset = 20
+        yOffset = 3
+ 
+        self.bottompanel = wx.Panel(self.split1)
+        #---STATS----#
+        statsSeperator = 200
+        xConstantStat = 200
+        yConstantStat = 30
+
+        font = wx.Font(pointSize=14, family=wx.FONTFAMILY_MODERN, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_BOLD)
+        header = wx.StaticText(self.bottompanel, label="Stats", pos=(xOffset, yOffset))
+        header.SetFont(font)
+
+        text = wx.StaticText(self.bottompanel, label="Avg.X", pos=(xOffset, yOffset+2*yConstantStat))
+        text = wx.StaticText(self.bottompanel, label="Avg.Y", pos=(xOffset, yOffset+3*yConstantStat))
+        text = wx.StaticText(self.bottompanel, label="Avg.Z", pos=(xOffset, yOffset+4*yConstantStat))
+
+
+        font = wx.Font(pointSize=12, family=wx.FONTFAMILY_MODERN, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_BOLD)
+        text = wx.StaticText(self.bottompanel, label="Accelerometer", pos=(xOffset+xConstantStat, yOffset+yConstantStat))
+        text.SetFont(font)
+
+        #text.SetFont(font)
+
+        wx.StaticText(self.bottompanel, label = "Avg.X", pos=(xOffset + xConstantStat, yOffset+yConstantStat))
+        wx.StaticText(self.bottompanel, label = "Avg.Y", pos=(xOffset + xConstantStat, yOffset+2*yConstantStat))
+        wx.StaticText(self.bottompanel, label = "Avg.Z", pos=(xOffset + xConstantStat, yOffset+3*yConstantStat))
+
+        #---Graph---#
+
+        '''
+        graph = wx.StaticText(self.bottompanel, label="Stats", pos=(xOffset, yOffset))
+        
+        self.cb_accel_x = wx.CheckBox(self.bottompanel, -1, 'Accelerometer X', (xOffset, yOffset+yConstant))
+        self.cb_accel_y = wx.CheckBox(self.bottompanel, -1, 'Accelerometer Y', (xOffset, yOffset+2*yConstant))
+        self.cb_accel_z = wx.CheckBox(self.bottompanel, -1, 'Accelerometer Z', (xOffset, yOffset+3*yConstant))
+
+        self.cb_gyro_x = wx.CheckBox(self.bottompanel, -1, 'Gyroscope X', (xOffset + xConstant, yOffset+yConstant))
+        self.cb_gyro_y = wx.CheckBox(self.bottompanel, -1, 'Gyroscope Y', (xOffset + xConstant, yOffset+2*yConstant))
+        self.cb_gyro_z = wx.CheckBox(self.bottompanel, -1, 'Gyroscope Z', (xOffset + xConstant, yOffset+3*yConstant))
+        '''
+        #---SEPERATOR---#
+        self.ln = wx.StaticLine(self.bottompanel, -1, pos= (xOffset + xConstantStat + statsSeperator, 0), size=(10,200), style=wx.LI_VERTICAL)
+        #self.ln.SetSize()
+
+
+        #self.bottompanel.AddSeparator()
+        #self.cb_accel_z = 
+        """   
         fonts = ['Times New Roman', 'Times', 'Courier', 'Courier New', 'Helvetica', 'Sans', 'verdana', 'utkal', 'aakar', 'Arial']
         self.bottompanel = wx.Panel(self.split1)
         toolbar2 = wx.ToolBar(self.bottompanel, wx.TB_HORIZONTAL | wx.TB_TEXT)
@@ -176,14 +228,18 @@ class Dragon(wx.Frame):
         toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Align Left', '')
         toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Center', '')
         toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Align Right', '')
-
+        """
         #---IMAGE---#
         
         image = 'Icons/article32.png'
         img = wx.Image(image, wx.BITMAP_TYPE_ANY)
     	self.sBmp = wx.StaticBitmap(self.bottompanel, wx.ID_ANY, wx.BitmapFromImage(img), (1100,10))
 
+
+        #---SPLITTER FRAMES---#
+        displaySize = wx.DisplaySize()
         self.split1.SplitHorizontally(self.split2, self.bottompanel)
+        self.split1.SetMinimumPaneSize(11*displaySize[1]/16) #top panels take 3/4 of screen estate vertically
         self.split2.SplitVertically(self.topleftpanel, self.toprightpanel)
 
         self.Show(True)
