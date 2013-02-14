@@ -79,6 +79,9 @@ class Dragon(wx.Frame):
         self.InitUI()   
 
     def InitUI(self):
+        #wx.Frame(parent, style=wx.MINIMIZE_BOX)
+        #self.Maximize(not self.IsMaximized())
+
         self.SetSize((1200, 650))
         self.SetTitle('DF Smart Data')
         self.Centre()
@@ -138,7 +141,7 @@ class Dragon(wx.Frame):
         self.topleftpanel = wx.Panel(self.split2)
         self.toprightpanel = wx.Panel(self.split2)
 
-        self.textL = wx.TextCtrl(self.topleftpanel, 1, style=wx.TE_MULTILINE)
+        self.textL = wx.TextCtrl(self.topleftpanel, 1,style=wx.TE_MULTILINE)
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.textL, wx.ID_ANY, wx.EXPAND, 3)
         self.topleftpanel.SetSizer(sizer)
@@ -184,7 +187,7 @@ class Dragon(wx.Frame):
         self.split2.SplitVertically(self.topleftpanel, self.toprightpanel)
 
         self.Show(True)
-    
+        self.Maximize()
     def OnOpen(self, e):
         dlg = wx.FileDialog(
             self, message="Choose a file",
@@ -195,6 +198,7 @@ class Dragon(wx.Frame):
             )
         if dlg.ShowModal() == wx.ID_OK:
             self.textL.Clear()
+            self.textL.SetEditable(True)
             paths = dlg.GetPaths()
             #for path in paths:
             graphParser(paths)
@@ -203,7 +207,7 @@ class Dragon(wx.Frame):
             for i in range(0, num_lines):
                 self.textL.AppendText(FORMATTED_DATA[i])
                 self.textL.AppendText('\n')
-
+            self.textL.SetEditable(False)
         dlg.Destroy()
 
     def OnSave(self, e):
