@@ -6,13 +6,12 @@ import wx.lib.agw.hyperlink as hl
 
 from pylab import *
 from scipy import signal
-import math, numpy
+from scipy.signal import lfilter, firwin
 from matplotlib import pyplot
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
 from numpy import sin, arange, pi
-from scipy.signal import lfilter, firwin
 
 import binascii
 wildcard = "Python source (*.txt)|*.txt|" \
@@ -42,6 +41,8 @@ ID_BUTTON=100
 CBX_val = False
 CBY_val = False
 CBZ_val = False
+#---File imported---#
+isFileImported = False
 
 
 class viewParser:
@@ -50,8 +51,14 @@ class viewParser:
         #   stringPath.append(filePath)
         stringPath = ''.join(path)
 
-        global num_lines, FORMATTED_DATA
+        global num_lines, ACCEL_X, ACCEL_Y, ACCEL_Z, GYRO_X, GYRO_Y, GYRO_Z, FORMATTED_DATA
         FORMATTED_DATA = []
+        ACCEL_X = []
+        ACCEL_Y = []
+        ACCEL_Z = []
+        GYRO_X = []
+        GYRO_Y = []
+        GYRO_Z = []
         num_lines = sum(1 for line in open(stringPath, 'r'))
 
         f = open(stringPath, 'r')
@@ -72,7 +79,6 @@ class viewParser:
                 #parsed_line from string ---> int format
                 parsed_line[var1] = int(parsed_line[var1])
 
-            global ACCEL_X, ACCEL_Y, ACCEL_Z, GYRO_X, GYRO_Y, GYRO_Z    
             ACCEL_X.append(parsed_line[0]);
             ACCEL_Y.append(parsed_line[1]);
             ACCEL_Z.append(parsed_line[2]);
@@ -108,11 +114,7 @@ class GraphFrame(wx.Frame):
 
     def __init__(self):
         wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
-        
-
-        cb_x.IsChecked()
-
-
+ 
         self.SetSize((400, 400))
         self.SetTitle('DF Smart Data')
         self.Centre()
@@ -324,11 +326,11 @@ class Dragon(wx.Frame):
             style=wx.OPEN | wx.MULTIPLE | wx.CHANGE_DIR
             )
         if dlg.ShowModal() == wx.ID_OK:
+            global isFileImported 
+            isFileImported = True
             self.textL.Clear()
             self.textL.SetEditable(True)
             paths = dlg.GetPaths()
-            #for path in paths:
-            #graphParser(paths)
             viewParser(paths)
             self.textL.AppendText("ACCEL_X |  ACCEL_Y  |  ACCEL_Z   |   GYRO_X  |   GYRO_Y   |   GYRO_Z  |\n")
             for i in range(0, num_lines):
@@ -345,8 +347,10 @@ class Dragon(wx.Frame):
         FilterFrame()
 
     def OnFilter(self, e):
-        self.Close()
-
+        global isFileImported
+        if isFileImported == True:
+            self.textR.Clear()
+            self.textR.AppendText("CHECK")
     #Graph
     def OnCBX(self, e):
         global CBX_val
@@ -361,15 +365,21 @@ class Dragon(wx.Frame):
         CBZ_val =e.IsChecked()
 
     def OnGraph(self, e):
-        GraphFrame()
+        global isFileImported
+        if isFileImported == True:
+            GraphFrame()
 
     #Stats
     def OnStats(self, e):
-        StatsFrame()
+        global isFileImported
+        if isFileImported == True:
+            StatsFrame()
 
     #Generate
     def OnGenerateFile(self, e):
-        self.Close()
+        global isFileImported
+        if isFileImported == True:
+            self.Close()
 
     def OnHelp(self, e):
         self.Close()
