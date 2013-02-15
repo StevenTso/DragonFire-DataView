@@ -351,6 +351,8 @@ class Dragon(wx.Frame):
         if isFileImported == True:
             self.textR.Clear()
             self.textR.AppendText("CHECK")
+        else:
+            wx.MessageBox("Import File First")
     #Graph
     def OnCBX(self, e):
         global CBX_val
@@ -368,18 +370,24 @@ class Dragon(wx.Frame):
         global isFileImported
         if isFileImported == True:
             GraphFrame()
+        else:
+            wx.MessageBox("Import File First")
 
     #Stats
     def OnStats(self, e):
         global isFileImported
         if isFileImported == True:
             StatsFrame()
+        else:
+            wx.MessageBox("Import File First")
 
     #Generate
     def OnGenerateFile(self, e):
         global isFileImported
         if isFileImported == True:
             self.Close()
+        else:
+            wx.MessageBox("Import File First")
 
     def OnHelp(self, e):
         self.Close()
