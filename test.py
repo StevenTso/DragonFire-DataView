@@ -1,20 +1,34 @@
-import wx 
+from numpy import arange, sin, pi
+import matplotlib
+matplotlib.use('WXAgg')
 
-class MyFrame(wx.Frame): 
-    """ Test of vertical wx.StaticLine """
-    def __init__(self, parent=None, id=-1, title=None): 
-        wx.Frame.__init__(self, parent, id, title) 
-        self.panel = wx.Panel(self, size=(350, 200))
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.backends.backend_wx import NavigationToolbar2Wx
+from matplotlib.figure import Figure
 
-        self.ln = wx.StaticLine(self.panel, -1, style=wx.LI_VERTICAL)
-        self.ln.SetSize((30,30))
+import wx
 
-        print self.ln.IsVertical()
+class CanvasPanel(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        self.figure = Figure()
+        self.axes = self.figure.add_subplot(111)
+        self.canvas = FigureCanvas(self, -1, self.figure)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.sizer.Add(self.canvas, 1, wx.LEFT | wx.TOP | wx.GROW)
+        self.SetSizer(self.sizer)
+        self.Fit()
 
-        self.Fit() 
+    def draw(self):
+        t = arange(0.0, 3.0, 0.01)
+        s = sin(2 * pi * t)
+        self.axes.plot(t, s)
 
-app = wx.PySimpleApp() 
-frame1 = MyFrame(title='wx.StaticLine') 
-frame1.Center() 
-frame1.Show() 
-app.MainLoop()
+
+if __name__ == "__main__":
+    app = wx.PySimpleApp()
+    fr = wx.Frame(None, title='test')
+    panel = CanvasPanel(fr)
+    panel.draw()
+    fr.Show()
+    app.MainLoop()

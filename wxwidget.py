@@ -3,6 +3,18 @@ from wx.lib import sheet
 import wx
 import wx.grid as gridlib
 import wx.lib.agw.hyperlink as hl
+
+from pylab import *
+from scipy import signal
+import math, numpy
+from matplotlib import pyplot
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.backends.backend_wx import NavigationToolbar2Wx
+from matplotlib.figure import Figure
+from numpy import sin, arange, pi
+from scipy.signal import lfilter, firwin
+
+import binascii
 wildcard = "Python source (*.txt)|*.txt|" \
             "All files (*.*)|*.*"
 
@@ -24,13 +36,22 @@ cuttoff_freq = 0.1
 
 ID_BUTTON=100
 
-class graphParser:
+
+#Graph
+#---CheckBox---#
+CBX_val = False
+CBY_val = False
+CBZ_val = False
+
+
+class viewParser:
     def __init__(self, path):
         #for filePath in path:
         #   stringPath.append(filePath)
         stringPath = ''.join(path)
 
-        global num_lines
+        global num_lines, FORMATTED_DATA
+        FORMATTED_DATA = []
         num_lines = sum(1 for line in open(stringPath, 'r'))
 
         f = open(stringPath, 'r')
@@ -59,21 +80,69 @@ class graphParser:
             GYRO_Y.append(parsed_line[4]);
             GYRO_Z.append(parsed_line[5]);
 
-class viewParser:
-    def __init__(self, path):
-        global FORMATTED_DATA
-        FORMATTED_DATA = []
-        graphParser(path)
         for var in range(0, num_lines):
             ax = str(ACCEL_X[var]).zfill(5) + "    |    "
-            ay = str(ACCEL_X[var]).zfill(5) + "    |    "
-            az = str(ACCEL_X[var]).zfill(5) + "    |    "
-            gx = str(ACCEL_X[var]).zfill(5) + "    |    "
-            gy = str(ACCEL_X[var]).zfill(5) + "    |    "
-            gz = str(ACCEL_X[var]).zfill(5) + "   |"
+            ay = str(ACCEL_Y[var]).zfill(5) + "    |    "
+            az = str(ACCEL_Z[var]).zfill(5) + "    |    "
+            gx = str(GYRO_X[var]).zfill(5) + "    |    "
+            gy = str(GYRO_Y[var]).zfill(5) + "    |    "
+            gz = str(GYRO_Z[var]).zfill(5) + "   |"
             newLine = ax + ay + az + gx + gy + gz
             FORMATTED_DATA.append(newLine)
-            
+
+
+class FilterFrame(wx.Frame):
+
+    title = "DF Stats"
+
+    def __init__(self):
+        wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
+        self.SetSize((400, 400))
+        self.SetTitle('DF Smart Data')
+        self.Centre()
+        self.Show(True)
+
+class GraphFrame(wx.Frame):
+
+    title = "DF Stats"
+
+    def __init__(self):
+        wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
+        
+
+        cb_x.IsChecked()
+
+
+        self.SetSize((400, 400))
+        self.SetTitle('DF Smart Data')
+        self.Centre()
+    
+
+        self.figure = Figure()
+        self.canvas = FigureCanvas(self, -1, self.figure)
+
+        #GRAPHS
+        t1 = arange(0, num_lines, 1)
+        #ACCEL_X       
+        self.axes = self.figure.add_subplot(231)
+        self.axes.plot(t1, ACCEL_X,'k--', markerfacecolor='green')
+        title('ACCEL_X')
+        ylabel('Value')
+        self.Show(True)
+        #self.Fit()
+        #self.Show(True)
+
+class StatsFrame(wx.Frame):
+
+    title = "DF Stats"
+
+    def __init__(self):
+        wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
+        self.SetSize((400, 400))
+        self.SetTitle('DF Smart Stats')
+        self.Centre()
+        self.Show(True)
+
 class Dragon(wx.Frame):
 
     def __init__(self, *args, **kwargs):
@@ -82,22 +151,17 @@ class Dragon(wx.Frame):
         self.InitUI()   
 
     def InitUI(self):
-        #wx.Frame(parent, style=wx.MINIMIZE_BOX)
-        #self.Maximize(not self.IsMaximized())
-        self.SetSize((1200, 800))
         self.SetTitle('DF Smart Data')
         self.Centre()
-
-        #---MENU OPTIONS---#
+        displaySize = wx.GetDisplaySize()
+        #______________________MENU OPTIONS______________________________#
         menubar = wx.MenuBar()
         #File
         fileMenu = wx.Menu()
         open = fileMenu.Append(wx.ID_OPEN, '&Open')
-        save = fileMenu.Append(wx.ID_SAVE, '&Save')
-        generate = fileMenu.Append(wx.ID_ANY, '&Generate')
+        generate = fileMenu.Append(wx.ID_ANY, '&Generate File')
         self.Bind(wx.EVT_MENU, self.OnOpen, open)
-        self.Bind(wx.EVT_MENU, self.OnSave, save)
-        self.Bind(wx.EVT_MENU, self.OnGenerate, generate)
+        self.Bind(wx.EVT_MENU, self.OnGenerateFile, generate)
 
         #Edit
         editMenu = wx.Menu()
@@ -109,9 +173,9 @@ class Dragon(wx.Frame):
         #View
         viewMenu = wx.Menu()
         stats = viewMenu.Append(wx.ID_ANY, '&Stats')
-        graphs = viewMenu.Append(wx.ID_ANY, 'Graphs')
+        graph = viewMenu.Append(wx.ID_ANY, 'Graphs')
         self.Bind(wx.EVT_MENU, self.OnStats, stats)
-        self.Bind(wx.EVT_MENU, self.OnGraphs, graphs)
+        self.Bind(wx.EVT_MENU, self.OnGraph, graph)
 
         #Help
         helpMenu = wx.Menu()
@@ -134,13 +198,12 @@ class Dragon(wx.Frame):
         self.Bind(wx.EVT_TOOL, self.OnOpen, generate)
         toolbar1.Realize()
 
-        #---2nd DOWN---#
         
         #_____________________PANELS______________________________#
         self.split1 = wx.SplitterWindow(self)
         self.split2 = wx.SplitterWindow(self.split1)
 
-        #---TEXT FRAMES---#
+        #---TEXT PANELS---#
         self.topleftpanel = wx.Panel(self.split2)
         self.toprightpanel = wx.Panel(self.split2)
 
@@ -157,84 +220,91 @@ class Dragon(wx.Frame):
         self.textR.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
 
         #---BOTTOM PANEL---#
-        xOffset = 20
-        yOffset = 3
- 
         self.bottompanel = wx.Panel(self.split1)
-        #---STATS----#
-        statsSeperator = 200
-        xConstantStat = 200
+        xConstant = 20
+        seperatorConstant = 50
+
+        #Filters
+        xOffsetFilters = xConstant
+        yOffsetFilters = 3
+        xConstantFilters = 100
+        yConstantFilters = 30
+        xBoxSize = 150
+
+        settingsImagePlace = 'Icons/folder32.png'
+        settingsImage = wx.Image(settingsImagePlace, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
+        font = wx.Font(pointSize=14, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_BOLD)
+        filters = wx.StaticText(self.bottompanel, label="Filters", pos=(xOffsetFilters, yOffsetFilters))
+        filters.SetFont(font)
+
+        filter_list = ['---', 'Low Pass Filter', 'Averager']
+
+        Filter0 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+1*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        Filter0Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
+        self.Bind(wx.EVT_BUTTON, self.OnFilter0Settings, Filter0Setting)
+
+        Filter1 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+2*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        Filter1Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+2*yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
+        self.Bind(wx.EVT_BUTTON, self.OnFilter1Settings, Filter1Setting)
+
+        filter_button = wx.Button(self.bottompanel, label=">>>", pos=((1*displaySize[0]/3)-3*seperatorConstant, yOffsetFilters+7*yConstantFilters/3))
+        self.Bind(wx.EVT_BUTTON, self.OnFilter, filter_button)
+        #Seperator
+        self.ln = wx.StaticLine(self.bottompanel, -1, pos= ((1*displaySize[0]/3)-seperatorConstant, 0), size=(10,200), style=wx.LI_VERTICAL)
+        
+
+        #Graph
+        xOffsetGraph = xConstant+1*displaySize[0]/3-seperatorConstant
+        yOffsetGraph = 3
+        xConstantGraph = 150
+        yConstantGraph = 30
+        font = wx.Font(pointSize=14, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_BOLD)
+        graph = wx.StaticText(self.bottompanel, label="Graph", pos=(xOffsetGraph, yOffsetGraph))
+        graph.SetFont(font)
+        
+        wx.StaticText(self.bottompanel, label="Accelerometer/Gyroscope", pos=(xOffsetGraph+xConstantGraph, yOffsetGraph+yConstantGraph))
+        wx.StaticText(self.bottompanel, label="X-Axis --->", pos=(xOffsetGraph+xConstantGraph/2, yOffsetGraph+2*yConstantGraph))
+        wx.StaticText(self.bottompanel, label="Y-Axis --->", pos=(xOffsetGraph+xConstantGraph/2, yOffsetGraph+3*yConstantGraph))
+        wx.StaticText(self.bottompanel, label="Z-Axis --->", pos=(xOffsetGraph+xConstantGraph/2, yOffsetGraph+4*yConstantGraph))
+
+        cb_x = wx.CheckBox(self.bottompanel, -1, '', (xOffsetGraph+3*xConstantGraph/2, yOffsetGraph+2*yConstantGraph))
+        self.Bind(wx.EVT_CHECKBOX, self.OnCBX, cb_x)
+        cb_y = wx.CheckBox(self.bottompanel, -1, '', (xOffsetGraph+3*xConstantGraph/2, yOffsetGraph+3*yConstantGraph))
+        self.Bind(wx.EVT_CHECKBOX, self.OnCBY, cb_y)
+        cb_z = wx.CheckBox(self.bottompanel, -1, '', (xOffsetGraph+3*xConstantGraph/2, yOffsetGraph+4*yConstantGraph))
+        self.Bind(wx.EVT_CHECKBOX, self.OnCBZ, cb_z)
+
+        graph_button = wx.Button(self.bottompanel, label=">>>", pos=((2*displaySize[0]/3)-3*seperatorConstant, yOffsetGraph+7*yConstantGraph/3))
+        self.Bind(wx.EVT_BUTTON, self.OnGraph, graph_button)
+        #Separator
+        self.ln = wx.StaticLine(self.bottompanel, -1, pos= (2*displaySize[0]/3-seperatorConstant, 0), size=(10,200), style=wx.LI_VERTICAL)
+
+
+        #Stats
+        xOffsetStats = xConstant+2*displaySize[0]/3+xConstant-seperatorConstant
+        yOffsetStats = 3
+        xConstantStat = 150
         yConstantStat = 30
 
-        font = wx.Font(pointSize=14, family=wx.FONTFAMILY_MODERN, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_BOLD)
-        header = wx.StaticText(self.bottompanel, label="Stats", pos=(xOffset, yOffset))
-        header.SetFont(font)
+        font = wx.Font(pointSize=14, family=wx.FONTFAMILY_DEFAULT, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_BOLD)
+        stats = wx.StaticText(self.bottompanel, label="Stats", pos=(xOffsetStats, yOffsetStats))
+        stats.SetFont(font)
 
-        text = wx.StaticText(self.bottompanel, label="Avg.X", pos=(xOffset, yOffset+2*yConstantStat))
-        text = wx.StaticText(self.bottompanel, label="Avg.Y", pos=(xOffset, yOffset+3*yConstantStat))
-        text = wx.StaticText(self.bottompanel, label="Avg.Z", pos=(xOffset, yOffset+4*yConstantStat))
-
-
-        font = wx.Font(pointSize=12, family=wx.FONTFAMILY_MODERN, style=wx.FONTSTYLE_NORMAL, weight=wx.FONTWEIGHT_BOLD)
-        text = wx.StaticText(self.bottompanel, label="Accelerometer", pos=(xOffset+xConstantStat, yOffset+yConstantStat))
-        text.SetFont(font)
-
-        #text.SetFont(font)
-
-        wx.StaticText(self.bottompanel, label = "Avg.X", pos=(xOffset + xConstantStat, yOffset+yConstantStat))
-        wx.StaticText(self.bottompanel, label = "Avg.Y", pos=(xOffset + xConstantStat, yOffset+2*yConstantStat))
-        wx.StaticText(self.bottompanel, label = "Avg.Z", pos=(xOffset + xConstantStat, yOffset+3*yConstantStat))
-
-        #---Graph---#
-
-        '''
-        graph = wx.StaticText(self.bottompanel, label="Stats", pos=(xOffset, yOffset))
-        
-        self.cb_accel_x = wx.CheckBox(self.bottompanel, -1, 'Accelerometer X', (xOffset, yOffset+yConstant))
-        self.cb_accel_y = wx.CheckBox(self.bottompanel, -1, 'Accelerometer Y', (xOffset, yOffset+2*yConstant))
-        self.cb_accel_z = wx.CheckBox(self.bottompanel, -1, 'Accelerometer Z', (xOffset, yOffset+3*yConstant))
-
-        self.cb_gyro_x = wx.CheckBox(self.bottompanel, -1, 'Gyroscope X', (xOffset + xConstant, yOffset+yConstant))
-        self.cb_gyro_y = wx.CheckBox(self.bottompanel, -1, 'Gyroscope Y', (xOffset + xConstant, yOffset+2*yConstant))
-        self.cb_gyro_z = wx.CheckBox(self.bottompanel, -1, 'Gyroscope Z', (xOffset + xConstant, yOffset+3*yConstant))
-        '''
-        #---SEPERATOR---#
-        self.ln = wx.StaticLine(self.bottompanel, -1, pos= (xOffset + xConstantStat + statsSeperator, 0), size=(10,200), style=wx.LI_VERTICAL)
-        #self.ln.SetSize()
+        stats = wx.Button(self.bottompanel, label="View Stats", pos=(xOffsetStats, yOffsetStats+yConstantStat))
+        self.Bind(wx.EVT_BUTTON, self.OnStats, stats)
+        #Separator
+        self.ln = wx.StaticLine(self.bottompanel, -1, pos= (3*displaySize[0]/3-6*seperatorConstant, 0), size=(10,200), style=wx.LI_VERTICAL)
 
 
-        #self.bottompanel.AddSeparator()
-        #self.cb_accel_z = 
-        """   
-        fonts = ['Times New Roman', 'Times', 'Courier', 'Courier New', 'Helvetica', 'Sans', 'verdana', 'utkal', 'aakar', 'Arial']
-        self.bottompanel = wx.Panel(self.split1)
-        toolbar2 = wx.ToolBar(self.bottompanel, wx.TB_HORIZONTAL | wx.TB_TEXT)
-        self.position = wx.TextCtrl(toolbar2)
-        font = wx.ComboBox(toolbar2, -1, value = 'Times', choices=fonts, size=(100, -1), style=wx.CB_DROPDOWN)
-        font_height = wx.ComboBox(toolbar2, -1, value = '10',  choices=['10', '11', '12', '14', '16'], size=(50, -1), style=wx.CB_DROPDOWN)
-        toolbar2.AddControl(self.position)
-        toolbar2.AddControl(wx.StaticText(toolbar2, -1, '  '))
-        toolbar2.AddControl(font)
-        toolbar2.AddControl(wx.StaticText(toolbar2, -1, '  '))
-        toolbar2.AddControl(font_height)
-        toolbar2.AddSeparator()
-        bold = wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        toolbar2.AddCheckTool(-1, bold , shortHelp = 'Bold')
-        italic = wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        toolbar2.AddCheckTool(-1, italic,  shortHelp = 'Italic')
-        under = wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap()
-        toolbar2.AddCheckTool(-1, under, shortHelp = 'Underline')
-        toolbar2.AddSeparator()
-        toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Align Left', '')
-        toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Center', '')
-        toolbar2.AddSimpleTool(-1, wx.Image('Icons/folder32.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap(), 'Align Right', '')
-        """
-        #---IMAGE---#
-        
+        #Image        
         image = 'Icons/article32.png'
         img = wx.Image(image, wx.BITMAP_TYPE_ANY)
     	self.sBmp = wx.StaticBitmap(self.bottompanel, wx.ID_ANY, wx.BitmapFromImage(img), (1100,10))
 
+        #Generate
+
+        generate = wx.Button(self.bottompanel, label="Generate Output File", pos=(displaySize[0]-11*xConstant, (displaySize[1]/3)-7*xConstant))
+        self.Bind(wx.EVT_BUTTON, self.OnGenerateFile, generate)
 
         #---SPLITTER FRAMES---#
         displaySize = wx.DisplaySize()
@@ -244,6 +314,7 @@ class Dragon(wx.Frame):
 
         self.Show(True)
         self.Maximize()
+
     def OnOpen(self, e):
         dlg = wx.FileDialog(
             self, message="Choose a file",
@@ -257,7 +328,7 @@ class Dragon(wx.Frame):
             self.textL.SetEditable(True)
             paths = dlg.GetPaths()
             #for path in paths:
-            graphParser(paths)
+            #graphParser(paths)
             viewParser(paths)
             self.textL.AppendText("ACCEL_X |  ACCEL_Y  |  ACCEL_Z   |   GYRO_X  |   GYRO_Y   |   GYRO_Z  |\n")
             for i in range(0, num_lines):
@@ -266,19 +337,38 @@ class Dragon(wx.Frame):
             self.textL.SetEditable(False)
         dlg.Destroy()
 
-    def OnSave(self, e):
+    #Filter
+    def OnFilter0Settings(self, e):
+        FilterFrame()
+
+    def OnFilter1Settings(self, e):
+        FilterFrame()
+
+    def OnFilter(self, e):
         self.Close()
 
-    def OnGenerate(self, e):
-        self.Close()
+    #Graph
+    def OnCBX(self, e):
+        global CBX_val
+        CBX_val =e.IsChecked()
 
-    def OnQuit(self, e):
-        self.Close()
+    def OnCBY(self, e):
+        global CBY_val
+        CBY_val =e.IsChecked()
 
+    def OnCBZ(self, e):
+        global CBZ_val
+        CBZ_val =e.IsChecked()
+
+    def OnGraph(self, e):
+        GraphFrame()
+
+    #Stats
     def OnStats(self, e):
-        self.Close()
+        StatsFrame()
 
-    def OnGraphs(self, e):
+    #Generate
+    def OnGenerateFile(self, e):
         self.Close()
 
     def OnHelp(self, e):
