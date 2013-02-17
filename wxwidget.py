@@ -3,7 +3,6 @@ from wx.lib import sheet
 import wx
 import wx.grid as gridlib
 import wx.lib.agw.hyperlink as hl
-
 from pylab import *
 from scipy import signal
 from scipy.signal import lfilter, firwin
@@ -25,6 +24,11 @@ GYRO_X = []
 GYRO_Y = []
 GYRO_Z = []
 FORMATTED_DATA = []
+
+filter_list = ['--------------', 'Low Pass Filter', 'Moving Average', 'Weighted Mean']
+Filter0 = None
+Filter1 = None
+Filter2 = None
 
 
 # some constants
@@ -100,13 +104,22 @@ class viewParser:
 class FilterFrame(wx.Frame):
 
     title = "DF Stats"
-
-    def __init__(self):
+    #Lowest value priorities are done first
+    def __init__(self, priority, value):
         wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
         self.SetSize((400, 400))
         self.SetTitle('DF Smart Data')
         self.Centre()
         self.Show(True)
+
+        if value==1:
+            print "LPF"
+        elif value==2:
+            print "Moving Average"
+        elif value==3:
+            print "Weighted Mean"
+        else:
+            print "NULL"
 
 class GraphFrame(wx.Frame):
 
@@ -227,11 +240,12 @@ class Dragon(wx.Frame):
         seperatorConstant = 50
 
         #Filters
+        global Filter0, Filter1, Filter2
         xOffsetFilters = xConstant
         yOffsetFilters = 3
         xConstantFilters = 100
         yConstantFilters = 30
-        xBoxSize = 150
+        xBoxSize = 175
 
         settingsImagePlace = 'Icons/folder32.png'
         settingsImage = wx.Image(settingsImagePlace, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -239,15 +253,20 @@ class Dragon(wx.Frame):
         filters = wx.StaticText(self.bottompanel, label="Filters", pos=(xOffsetFilters, yOffsetFilters))
         filters.SetFont(font)
 
-        filter_list = ['---', 'Low Pass Filter', 'Averager']
-
         Filter0 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+1*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        Filter0.SetValue(filter_list[0])
         Filter0Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
         self.Bind(wx.EVT_BUTTON, self.OnFilter0Settings, Filter0Setting)
 
         Filter1 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+2*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        Filter1.SetValue(filter_list[0])
         Filter1Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+2*yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
         self.Bind(wx.EVT_BUTTON, self.OnFilter1Settings, Filter1Setting)
+
+        Filter2 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+3*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        Filter2.SetValue(filter_list[0])
+        Filter2Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+3*yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
+        self.Bind(wx.EVT_BUTTON, self.OnFilter2Settings, Filter2Setting)
 
         filter_button = wx.Button(self.bottompanel, label=">>>", pos=((1*displaySize[0]/3)-3*seperatorConstant, yOffsetFilters+7*yConstantFilters/3))
         self.Bind(wx.EVT_BUTTON, self.OnFilter, filter_button)
@@ -341,10 +360,15 @@ class Dragon(wx.Frame):
 
     #Filter
     def OnFilter0Settings(self, e):
-        FilterFrame()
+        FilterFrame(0, Filter0.GetCurrentSelection())
 
     def OnFilter1Settings(self, e):
-        FilterFrame()
+        #Given 1 - Blah -> (int)1
+        FilterFrame(1, Filter1.GetCurrentSelection())
+
+    def OnFilter2Settings(self, e):
+        #Given 1 - Blah -> (int)1
+        FilterFrame(2, Filter2.GetCurrentSelection())
 
     def OnFilter(self, e):
         global isFileImported
