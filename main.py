@@ -29,6 +29,7 @@ modified_data = []
 CBX_val = False
 CBY_val = False
 CBZ_val = False
+cb_show_original_val = False
 
 def isFloat(string):
     try:
@@ -293,42 +294,87 @@ class GraphFrame(wx.Frame):
         GYRO_Z = modified_data[5]
 
         #GRAPHS
-        t1 = arange(0, num_lines, 1)
+        if(cb_show_original_val==True):
+            t1 = arange(0, len(original_data[0]), 1)
+            O_ACCEL_X = original_data[0]
+            O_ACCEL_Y = original_data[1]
+            O_ACCEL_Z = original_data[2]
+            O_GYRO_X = original_data[3]
+            O_GYRO_Y = original_data[4]
+            O_GYRO_Z = original_data[5]          
+            #ACCEL_X
+            subplot(231)
+            plot(t1, O_ACCEL_X,'k--', markerfacecolor='black')
+            title('ACCEL_X')
+            ylabel('Value')
 
+            #ACCEL_Y
+            subplot(232)
+            plot(t1, O_ACCEL_Y,'k--', markerfacecolor='black')
+            title('ACCEL_Y')
+            ylabel('Value')
+
+
+            #ACCEL_Z
+            subplot(233)
+            plot(t1, O_ACCEL_Z,'k--', markerfacecolor='black')
+            title('ACCEL_Z')
+            ylabel('Value')
+
+            #GYRO_X
+            subplot(234)
+            plot(t1, O_GYRO_X,'k--', markerfacecolor='black')
+            title('GYRO_X')
+            ylabel('Value')
+
+            #GRYO_Y
+            subplot(235)
+            plot(t1, O_GYRO_Y,'k--', markerfacecolor='black')
+            title('GYRO_Y')
+            ylabel('Value')
+            
+            #GRYO_Z
+            subplot(236)
+            plot(t1, O_GYRO_Z,'k--', markerfacecolor='black')
+            title('GYRO_Z')
+            ylabel('Value')
+
+
+        t2 = arange(0, len(modified_data[0]), 1)
         #ACCEL_X
         subplot(231)
-        plot(t1, ACCEL_X,'k--', markerfacecolor='green')
+        plot(t2, ACCEL_X,'b--', markerfacecolor='green')
         title('ACCEL_X')
         ylabel('Value')
 
         #ACCEL_Y
         subplot(232)
-        plot(t1, ACCEL_Y,'k--', markerfacecolor='green')
+        plot(t2, ACCEL_Y,'b--', markerfacecolor='green')
         title('ACCEL_Y')
         ylabel('Value')
 
 
         #ACCEL_Z
         subplot(233)
-        plot(t1, ACCEL_Z,'k--', markerfacecolor='green')
+        plot(t2, ACCEL_Z,'b--', markerfacecolor='green')
         title('ACCEL_Z')
         ylabel('Value')
 
         #GYRO_X
         subplot(234)
-        plot(t1, GYRO_X,'k--', markerfacecolor='green')
+        plot(t2, GYRO_X,'b--', markerfacecolor='green')
         title('GYRO_X')
         ylabel('Value')
 
         #GRYO_Y
         subplot(235)
-        plot(t1, GYRO_Y,'k--', markerfacecolor='green')
+        plot(t2, GYRO_Y,'b--', markerfacecolor='green')
         title('GYRO_Y')
         ylabel('Value')
         
         #GRYO_Z
         subplot(236)
-        plot(t1, GYRO_Z,'k--', markerfacecolor='green')
+        plot(t2, GYRO_Z,'b--', markerfacecolor='green')
         title('GYRO_Z')
         ylabel('Value')
         
@@ -490,6 +536,10 @@ class Dragon(wx.Frame):
         self.Bind(wx.EVT_CHECKBOX, self.OnCBY, cb_y)
         cb_z = wx.CheckBox(self.bottompanel, -1, '', (xOffsetGraph+3*xConstantGraph/2, yOffsetGraph+4*yConstantGraph))
         self.Bind(wx.EVT_CHECKBOX, self.OnCBZ, cb_z)
+
+        wx.StaticText(self.bottompanel, label="Graph Original", pos=((2*displaySize[0]/3)-4*seperatorConstant, yOffsetGraph+13*yConstantGraph/3))
+        cb_show_original = wx.CheckBox(self.bottompanel, -1, '', pos=((2*displaySize[0]/3)-2*seperatorConstant, yOffsetGraph+13*yConstantGraph/3))
+        self.Bind(wx.EVT_CHECKBOX, self.OnCB_show_original, cb_show_original)
 
         graph_button = wx.Button(self.bottompanel, label=">>>", pos=((2*displaySize[0]/3)-3*seperatorConstant, yOffsetGraph+7*yConstantGraph/3))
         self.Bind(wx.EVT_BUTTON, self.OnGraph, graph_button)
@@ -687,14 +737,21 @@ class Dragon(wx.Frame):
             wx.MessageBox("Import File First")
     #Graph
     def OnCBX(self, e):
+        global CBX_val
         CBX_val =e.IsChecked()
 
     def OnCBY(self, e):
+        global CBY_val
         CBY_val =e.IsChecked()
 
     def OnCBZ(self, e):
+        global CBZ_val
         CBZ_val =e.IsChecked()
-
+    
+    def OnCB_show_original(self, e):
+        global cb_show_original_val
+        cb_show_original_val = e.IsChecked()
+    
     def OnGraph(self, e):
         global isFileImported
         if isFileImported == True:
