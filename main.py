@@ -13,6 +13,7 @@ from numpy import sin, arange, pi
 import parser
 import DFfilters
 
+path = None
 parseFile = parser.parse()
 fil = DFfilters.filters()
 num_lines = 10;
@@ -25,6 +26,8 @@ class FilterFrame(wx.Frame):
     LPFText1 = None
     LPFText2 = None
     LPF_default_button = None
+    SMA_Text1 = None
+    SMA_default_button = None
 
     filter_button = None
     def __init__(self, priority, value):
@@ -32,14 +35,12 @@ class FilterFrame(wx.Frame):
 
         if isFileImported == True and value!=0:
             wx.Frame.__init__(self, wx.GetApp().TopWindow, title="DF Filters")
-            self.SetSize((400, 160))
             self.SetTitle('DF Smart Data')
             self.Centre()
-            self.Show(True)
 
-            global original_data, modified_data
             if value==1:
                 global LPFText1, LPFText2, LPF_default_button
+                self.SetSize((400, 160))
                 wx.StaticText(self, label="Cut-Off Frequency", pos=(40, 20))
                 LPFText1 = wx.TextCtrl(self, pos=(180, 20))
                 LPFText1.AppendText(str(fil.LPF_Get_Cut_Off()))
@@ -56,9 +57,24 @@ class FilterFrame(wx.Frame):
                 filter_button = wx.Button(self, label=">>", pos=(290, 35))
                 self.Bind(wx.EVT_BUTTON, self.OnLPFFilterGo, filter_button)
 
+                self.Show(True)
+                
             elif value==2:
-                fil.Simple_Moving_Average()
-                #FORMATTED_DATA = Simple_Moving_Average()
+                global SMA_Text1, SMA_default_button
+                self.SetSize((350, 120))
+                wx.StaticText(self, label="N (previous points)", pos=(20,20))
+                SMA_Text1 = wx.TextCtrl(self, pos=(145, 20))
+                SMA_Text1.AppendText(str(fil.SMA_Get_N()))
+                SMA_Text1.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
+
+                SMA_default_button = wx.Button(self, label="Default Settings", pos=(20, 60))
+                self.Bind(wx.EVT_BUTTON, self.OnSMADefault, SMA_default_button)
+
+                filter_button = wx.Button(self, label=">>", pos=(260, 20))
+                self.Bind(wx.EVT_BUTTON, self.OnSMAFilterGo, filter_button)
+
+                self.Show(True)
+
             elif value==3:
                 fil.Exponential_Moving_Average()
             elif value==4:
@@ -82,21 +98,38 @@ class FilterFrame(wx.Frame):
         LPFText2.AppendText(str(fil.LPF_Default_NumTaps()))
 
     def OnLPFFilterGo(self, e):
+        global LPFText1, LPFText2
         fil.LPF_Set_Cut_Off(LPFText1.GetValue())
         fil.LPF_Set_NumTaps(LPFText2.GetValue())
         wx.MessageBox("Settings Applied!")
 
+    def OnSMADefault(self, e):
+        global SMA_Text1
+        SMA_Text1.Clear()
+        SMA_Text1.AppendText(str(fil.SMA_Get_N()))
+
+    def OnSMAFilterGo(self, e):
+        global SMA_Text1
+        fil.SMA_Set_N(SMA_Text1.GetValue())
+        wx.MessageBox("Settings Applied!")
+
     def OnUndoKeyPress(self, e):
-        if wx.Window.FindFocus() == self.Text1:
-            self.Text1.Undo()
+        focus = wx.Window.FindFocus()
+        if focus == self.LPFText1:
+            self.LPFText1.Undo()
+        elif focus == self.LPFText2:
+            self.LPFText2.Undo()
         else:
-            self.Text2.Undo()
+            self.SMA_Text1.Undo()
 
     def OnRedoKeyPress(self, e):
-        if wx.Window.FindFocus() == self.Text1:
-            self.Text1.Redo()
+        focus = wx.Window.FindFocus()
+        if focus == self.LPFText1:
+            self.LPFText1.Redo()
+        elif focus == self.LPFText2:
+            self.LPFText2.Redo()
         else:
-            self.Text2.Redo()
+            self.SMA_Text1.Redo()
             
 
     def OnKeyPress(self, e):
@@ -342,7 +375,7 @@ class Dragon(wx.Frame):
         self.Maximize()
 
     def OnOpen(self, e):
-        global num_lines, original_data
+        global path, num_lines, original_data
         wildcard = "Python source (*.txt)|*.txt|" \
             "All files (*.*)|*.*"
         dlg = wx.FileDialog(
@@ -354,7 +387,7 @@ class Dragon(wx.Frame):
             )
         if dlg.ShowModal() == wx.ID_OK:
             global isFileImported
-            original_data = []
+            original_data[:] = []
             isFileImported = True
             self.textL.Clear()
             self.textL.SetEditable(True)
@@ -385,29 +418,50 @@ class Dragon(wx.Frame):
         global isFileImported
         global original_data, modified_data
         if isFileImported == True:
+            #LPF
             cut_off_freq = fil.LPF_Get_Cut_Off()
             numtaps = fil.LPF_Get_NumTaps()
+            #SMA
+            n = fil.SMA_Get_N()
+
+            num_lines = parseFile.GetLineCount(path)
+            original_data[:] = []
+            modified_data[:] = []
+            original_data = parseFile.parser(path)
 
             value0 = self.Filter0.GetCurrentSelection()
             if value0==1:
+                print original_data
                 modified_data = fil.LPF(original_data, cut_off_freq, numtaps)
+            elif value0==2:
+                print original_data
+                modified_data = fil.Simple_Moving_Average(original_data, n)
             else:
-                print "Placeholder"
+                print "Placeholder0"
+                
             value1 = self.Filter1.GetCurrentSelection()
             if value1==1:
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
+            elif value1==2:
+                modified_data = fil.Simple_Moving_Average(modified_data, n)
             else:
-                print "Placeholder"
+                print "Placeholder1"
+
             value2 = self.Filter2.GetCurrentSelection()
             if value2==1:
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
+            elif value2==2:
+                modified_data = fil.Simple_Moving_Average(modified_data, n)
             else:
-                print "Placeholder"
+                print "Placeholder2"
+
             value3 = self.Filter3.GetCurrentSelection()
             if value3==1:
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
+            elif value3==2:
+                modified_data = fil.Simple_Moving_Average(modified_data, n)
             else:
-                print "Placeholder"
+                print "Placeholder3"
 
             self.textR.Clear()
             formatted_data = parseFile.WindowView(modified_data)

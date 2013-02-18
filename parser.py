@@ -57,7 +57,6 @@ class parse:
 	def WindowView(self, data):
 		global num_lines
 		Formatted_Data = []
-		print data
 		ACCEL_X = data[0]
 		ACCEL_Y = data[1]
 		ACCEL_Z = data[2]

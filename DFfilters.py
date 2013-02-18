@@ -2,6 +2,7 @@ from scipy.signal import lfilter, firwin
 class filters:
 	LPF_cut_off_freq = 200
 	LPF_numtaps = 40
+	SMA_n = 5
 	
 	def LPF_Default_Cut_Off(self):
 		return 200
@@ -56,8 +57,66 @@ class filters:
 		output_data.append(GYRO_Z_filtered_signal)
 		return output_data
 
-	def Simple_Moving_Average(self):
-		print "SMA"
+	def SMA_Default_N(self):
+		return 5
+
+	def SMA_Get_N(self):
+		global SMA_n
+		return self.SMA_n
+
+	def SMA_Set_N(self, value):
+		global SMA_n
+		SMA_n = value
+
+	def SMA_Algo(self, dataset, n):
+		length = len(dataset)
+		i = 0
+		val = None
+		total = 0
+		queue_n = []
+		output_algodata = []
+
+		while(i<length):
+			if(i<=n):
+				val = dataset.pop(0)
+				total+=val
+				output_algodata.append(float(val))
+				queue_n.append(val)
+			else:	
+				val = dataset.pop(0)
+				total+=val
+				total-=queue_n.pop(0)
+				output_algodata.append(float(total/n))
+				queue_n.append(val)
+			i+=1
+
+		return output_algodata
+
+	def Simple_Moving_Average(self, data, n):
+		output_data = []
+
+		ACCEL_X = data[0]
+		ACCEL_Y = data[1]
+		ACCEL_Z = data[2]
+		GYRO_X = data[3]
+		GYRO_Y = data[4]
+		GYRO_Z = data[5]
+
+		ACCEL_X_filtered_signal = self.SMA_Algo(ACCEL_X, n)
+		ACCEL_Y_filtered_signal = self.SMA_Algo(ACCEL_Y, n)
+		ACCEL_Z_filtered_signal = self.SMA_Algo(ACCEL_Z, n)
+		GYRO_X_filtered_signal = self.SMA_Algo(GYRO_X, n)
+		GYRO_Y_filtered_signal = self.SMA_Algo(GYRO_Y, n)
+		GYRO_Z_filtered_signal = self.SMA_Algo(GYRO_Z, n)
+
+		output_data.append(ACCEL_X_filtered_signal)
+		output_data.append(ACCEL_Y_filtered_signal)
+		output_data.append(ACCEL_Z_filtered_signal)
+		output_data.append(GYRO_X_filtered_signal)
+		output_data.append(GYRO_Y_filtered_signal)
+		output_data.append(GYRO_Z_filtered_signal)
+
+		return output_data
 
 	def Exponential_Moving_Average(self):
 		print "EMA"
