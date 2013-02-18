@@ -3,7 +3,8 @@ class filters:
 	LPF_cut_off_freq = 200
 	LPF_numtaps = 40
 	SMA_n = 5
-	
+	EMA_a = 0.5
+
 	def LPF_Default_Cut_Off(self):
 		return 200
 
@@ -26,6 +27,9 @@ class filters:
 		global LPF_numtaps
 		LPF_numtaps = value
 
+	def LPF_Get_Freq_Limit(self):
+		return 500
+	
 	def	LPF(self, data, cut_off_freq, numtaps):
 		global LPF_cut_off_freq, LPF_numtaps
 		LPF_cut_off_freq = int(cut_off_freq)
@@ -74,23 +78,27 @@ class filters:
 		val = None
 		total = 0
 		queue_n = []
-		output_algodata = []
+		output_data = []
 
 		while(i<length):
-			if(i<=n):
+			if(i<n):
 				val = dataset.pop(0)
 				total+=val
-				output_algodata.append(float(val))
+				output_data.append(float(val))
 				queue_n.append(val)
-			else:	
+			elif(i==n):
+				val = dataset.pop(0)
+				total+=val
+				output_data.append(float(total/(n+1)))
+			else:
 				val = dataset.pop(0)
 				total+=val
 				total-=queue_n.pop(0)
-				output_algodata.append(float(total/n))
+				output_data.append(float(total/(n+1)))
 				queue_n.append(val)
 			i+=1
 
-		return output_algodata
+		return output_data
 
 	def Simple_Moving_Average(self, data, n):
 		output_data = []
@@ -118,8 +126,63 @@ class filters:
 
 		return output_data
 
-	def Exponential_Moving_Average(self):
-		print "EMA"
+	def EMA_Default_A(self):
+		return 0.5;
+
+	def EMA_Get_A(self):
+		global EMA_a
+		return self.EMA_a
+
+	def EMA_Set_A(self, a):
+		global EMA_a
+		EMA_a = a
+
+	def EMA_Algo(self, dataset, a):
+		length = len(dataset)
+		pre_val = None
+		cur_val = None
+		output_data = []
+
+		cur_val = dataset.pop(0)
+		pre_val = cur_val
+
+		output_data.append(cur_val)
+		i = 1
+
+		while(i<length):
+			val = dataset.pop(0)
+			cur_val = (a*val) + (1-a)*(pre_val)
+			output_data.append(float(cur_val))
+			pre_val = cur_val
+			i+=1
+
+		return output_data
+
+	def Exponential_Moving_Average(self, data, a):
+		output_data = []
+
+		ACCEL_X = data[0]
+		ACCEL_Y = data[1]
+		ACCEL_Z = data[2]
+		GYRO_X = data[3]
+		GYRO_Y = data[4]
+		GYRO_Z = data[5]
+
+		ACCEL_X_filtered_signal = self.EMA_Algo(ACCEL_X, a)
+		ACCEL_Y_filtered_signal = self.EMA_Algo(ACCEL_Y, a)
+		ACCEL_Z_filtered_signal = self.EMA_Algo(ACCEL_Z, a)
+		GYRO_X_filtered_signal = self.EMA_Algo(GYRO_X, a)
+		GYRO_Y_filtered_signal = self.EMA_Algo(GYRO_Y, a)
+		GYRO_Z_filtered_signal = self.EMA_Algo(GYRO_Z, a)
+
+		output_data.append(ACCEL_X_filtered_signal)
+		output_data.append(ACCEL_Y_filtered_signal)
+		output_data.append(ACCEL_Z_filtered_signal)
+		output_data.append(GYRO_X_filtered_signal)
+		output_data.append(GYRO_Y_filtered_signal)
+		output_data.append(GYRO_Z_filtered_signal)
+
+		return output_data
 
 	def Weighted_Mean(self):
 		print "Weighted Mean"

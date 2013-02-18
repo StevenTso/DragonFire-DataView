@@ -22,12 +22,21 @@ modified_data = []
 #---File imported---#
 isFileImported = False
 
+def isFloat(string):
+    try:
+        float(string)
+        return True
+    except ValueError:
+        return False
+
 class FilterFrame(wx.Frame):
     LPFText1 = None
     LPFText2 = None
     LPF_default_button = None
     SMA_Text1 = None
     SMA_default_button = None
+    EMA_Text1 = None
+    EMA_default_button = None
 
     filter_button = None
     def __init__(self, priority, value):
@@ -76,7 +85,20 @@ class FilterFrame(wx.Frame):
                 self.Show(True)
 
             elif value==3:
-                fil.Exponential_Moving_Average()
+                global EMA_Text1, EMA_default_button
+                self.SetSize((350, 120))
+                wx.StaticText(self, label="Alpha", pos=(20,20))
+                EMA_Text1 = wx.TextCtrl(self, pos=(145, 20))
+                EMA_Text1.AppendText(str(fil.EMA_Get_A()))
+                EMA_Text1.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
+
+                EMA_default_button = wx.Button(self, label="Default Settings", pos=(20, 60))
+                self.Bind(wx.EVT_BUTTON, self.OnEMADefault, EMA_default_button)
+
+                filter_button = wx.Button(self, label=">>", pos=(260, 20))
+                self.Bind(wx.EVT_BUTTON, self.OnEMAFilterGo, filter_button)
+
+                self.Show(True)
             elif value==4:
                 fil.Weighted_Mean()
             else:
@@ -99,9 +121,17 @@ class FilterFrame(wx.Frame):
 
     def OnLPFFilterGo(self, e):
         global LPFText1, LPFText2
-        fil.LPF_Set_Cut_Off(LPFText1.GetValue())
-        fil.LPF_Set_NumTaps(LPFText2.GetValue())
-        wx.MessageBox("Settings Applied!")
+        cut_off_val = LPFText1.GetValue()
+        numtaps_val = LPFText2.GetValue()
+        if(cut_off_val.isdigit() and numtaps_val.isdigit()):
+            if(int(cut_off_val)<fil.LPF_Get_Freq_Limit()):
+                fil.LPF_Set_Cut_Off(int(cut_off_val))
+                fil.LPF_Set_NumTaps(int(numtaps_val))
+                wx.MessageBox("Settings Applied!")
+            else:
+                wx.MessageBox("Lower the value of the cut-off")
+        else:
+            wx.MessageBox("Please enter whole digits!")
 
     def OnSMADefault(self, e):
         global SMA_Text1
@@ -110,8 +140,30 @@ class FilterFrame(wx.Frame):
 
     def OnSMAFilterGo(self, e):
         global SMA_Text1
-        fil.SMA_Set_N(SMA_Text1.GetValue())
-        wx.MessageBox("Settings Applied!")
+        value = SMA_Text1.GetValue()
+        if(value.isdigit()):
+            fil.SMA_Set_N(int(value))
+            wx.MessageBox("Settings Applied!")
+        else:
+            wx.MessageBox("Please enter a whole number!")
+
+    def OnEMADefault(self, e):
+        global EMA_Text1
+        EMA_Text1.Clear()
+        EMA_Text1.AppendText(str(fil.EMA_Get_A()))
+
+    def OnEMAFilterGo(self, e):
+        global EMA_Text1
+        value = EMA_Text1.GetValue()
+        if(isFloat(value)):
+            print float(value)
+            if(float(value)<=1):
+                fil.EMA_Set_A(float(value))
+                wx.MessageBox("Settings Applied!")
+            else:
+                wx.MessageBox("Please enter a number less than or equal to 1!")
+        else:
+            wx.MessageBox("Please enter an number!")
 
     def OnUndoKeyPress(self, e):
         focus = wx.Window.FindFocus()
@@ -423,6 +475,8 @@ class Dragon(wx.Frame):
             numtaps = fil.LPF_Get_NumTaps()
             #SMA
             n = fil.SMA_Get_N()
+            #EMA
+            a = fil.EMA_Get_A()
 
             num_lines = parseFile.GetLineCount(path)
             original_data[:] = []
@@ -431,11 +485,12 @@ class Dragon(wx.Frame):
 
             value0 = self.Filter0.GetCurrentSelection()
             if value0==1:
-                print original_data
                 modified_data = fil.LPF(original_data, cut_off_freq, numtaps)
             elif value0==2:
-                print original_data
                 modified_data = fil.Simple_Moving_Average(original_data, n)
+            elif value0==3:
+                print original_data
+                modified_data = fil.Exponential_Moving_Average(original_data, a)
             else:
                 print "Placeholder0"
                 
@@ -444,6 +499,8 @@ class Dragon(wx.Frame):
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
             elif value1==2:
                 modified_data = fil.Simple_Moving_Average(modified_data, n)
+            elif value0==3:
+                modified_data = fil.Exponential_Moving_Average(modified_data, a)
             else:
                 print "Placeholder1"
 
@@ -452,6 +509,8 @@ class Dragon(wx.Frame):
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
             elif value2==2:
                 modified_data = fil.Simple_Moving_Average(modified_data, n)
+            elif value2==3:
+                modified_data = fil.Exponential_Moving_Average(modified_data, a)
             else:
                 print "Placeholder2"
 
@@ -460,6 +519,8 @@ class Dragon(wx.Frame):
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
             elif value3==2:
                 modified_data = fil.Simple_Moving_Average(modified_data, n)
+            elif value3==3:
+                modified_data = fil.Exponential_Moving_Average(modified_data, a)
             else:
                 print "Placeholder3"
 
