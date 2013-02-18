@@ -1,8 +1,7 @@
 import os
-from wx.lib import sheet
 import wx
-import wx.grid as gridlib
 import wx.lib.agw.hyperlink as hl
+
 from pylab import *
 from scipy import signal
 from scipy.signal import lfilter, firwin
@@ -12,93 +11,12 @@ from matplotlib.backends.backend_wx import NavigationToolbar2Wx
 from matplotlib.figure import Figure
 from numpy import sin, arange, pi
 
-import binascii
-wildcard = "Python source (*.txt)|*.txt|" \
-            "All files (*.*)|*.*"
+import parser
+import DFfilters
 
 num_lines = 10;
-ACCEL_X = []
-ACCEL_Y = []
-ACCEL_Z = []
-GYRO_X = []
-GYRO_Y = []
-GYRO_Z = []
-FORMATTED_DATA = []
-
-filter_list = ['--------------', 'Low Pass Filter', 'Moving Average', 'Weighted Mean']
-Filter0 = None
-Filter1 = None
-Filter2 = None
-
-
-# some constants
-samp_rate = 20
-sim_time = 60
-nsamps = samp_rate*sim_time
-cuttoff_freq = 0.1
-
-ID_BUTTON=100
-
-
-#Graph
-#---CheckBox---#
-CBX_val = False
-CBY_val = False
-CBZ_val = False
-#---File imported---#
-isFileImported = False
-
-
-class viewParser:
-    def __init__(self, path):
-        #for filePath in path:
-        #   stringPath.append(filePath)
-        stringPath = ''.join(path)
-
-        global num_lines, ACCEL_X, ACCEL_Y, ACCEL_Z, GYRO_X, GYRO_Y, GYRO_Z, FORMATTED_DATA
-        FORMATTED_DATA = []
-        ACCEL_X = []
-        ACCEL_Y = []
-        ACCEL_Z = []
-        GYRO_X = []
-        GYRO_Y = []
-        GYRO_Z = []
-        num_lines = sum(1 for line in open(stringPath, 'r'))
-
-        f = open(stringPath, 'r')
-        for var0 in range(0, num_lines):
-            line = f.readline();
-            #removes last comma and new line
-            parsed_line = line[:-2];
-            
-            parsed_line = parsed_line.split(',');
-            
-            for var1 in range(0, 6):
-                #removes white spaces
-                if parsed_line[var1][-1:] == ' ':
-                    parsed_line[var1] = parsed_line[var1].rstrip();
-                #remove escape character
-                if parsed_line[var1][-1:] == '\x00':
-                    parsed_line[var1] = parsed_line[var1].rstrip('\x00');
-                #parsed_line from string ---> int format
-                parsed_line[var1] = int(parsed_line[var1])
-
-            ACCEL_X.append(parsed_line[0]);
-            ACCEL_Y.append(parsed_line[1]);
-            ACCEL_Z.append(parsed_line[2]);
-            GYRO_X.append(parsed_line[3]);
-            GYRO_Y.append(parsed_line[4]);
-            GYRO_Z.append(parsed_line[5]);
-
-        for var in range(0, num_lines):
-            ax = str(ACCEL_X[var]).zfill(5) + "    |    "
-            ay = str(ACCEL_Y[var]).zfill(5) + "    |    "
-            az = str(ACCEL_Z[var]).zfill(5) + "    |    "
-            gx = str(GYRO_X[var]).zfill(5) + "    |    "
-            gy = str(GYRO_Y[var]).zfill(5) + "    |    "
-            gz = str(GYRO_Z[var]).zfill(5) + "   |"
-            newLine = ax + ay + az + gx + gy + gz
-            FORMATTED_DATA.append(newLine)
+original_data = []
+modified_data = []
 
 
 class FilterFrame(wx.Frame):
@@ -113,11 +31,15 @@ class FilterFrame(wx.Frame):
         self.Show(True)
 
         if value==1:
-            print "LPF"
+            fil.LPF(priority, numtaps, cut_off_freq)
+            #FORMATTED_DATA = LPF(priority, numtaps, cut_off_freq)
         elif value==2:
-            print "Moving Average"
+            fil.Simple_Moving_Average()
+            #FORMATTED_DATA = Simple_Moving_Average()
         elif value==3:
-            print "Weighted Mean"
+            fil.Exponential_Moving_Average()
+        elif value==4:
+            fil.Weighted_Mean()
         else:
             print "NULL"
 
@@ -159,6 +81,20 @@ class StatsFrame(wx.Frame):
         self.Show(True)
 
 class Dragon(wx.Frame):
+    parseFile = parser.parse()
+    filter_list = ['--------------', 'Low Pass Filter', 'Simple Moving Average', 'Exponential Moving Average', 'Weighted Mean']
+    Filter0 = None
+    Filter1 = None
+    Filter2 = None
+    Filter3 = None
+    fil = DFfilters.filters()
+    #Graph
+    #---CheckBox---#
+    CBX_val = False
+    CBY_val = False
+    CBZ_val = False
+    #---File imported---#
+    isFileImported = False
 
     def __init__(self, *args, **kwargs):
         super(Dragon, self).__init__(*args, **kwargs)
@@ -240,12 +176,11 @@ class Dragon(wx.Frame):
         seperatorConstant = 50
 
         #Filters
-        global Filter0, Filter1, Filter2
         xOffsetFilters = xConstant
         yOffsetFilters = 3
-        xConstantFilters = 100
-        yConstantFilters = 30
-        xBoxSize = 175
+        xConstantFilters = 120
+        yConstantFilters = 25
+        xBoxSize = 215
 
         settingsImagePlace = 'Icons/folder32.png'
         settingsImage = wx.Image(settingsImagePlace, wx.BITMAP_TYPE_ANY).ConvertToBitmap()
@@ -253,22 +188,27 @@ class Dragon(wx.Frame):
         filters = wx.StaticText(self.bottompanel, label="Filters", pos=(xOffsetFilters, yOffsetFilters))
         filters.SetFont(font)
 
-        Filter0 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+1*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        Filter0.SetValue(filter_list[0])
+        self.Filter0 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+1*yConstantFilters), size=(xBoxSize,-1), choices=self.filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.Filter0.SetValue(self.filter_list[0])
         Filter0Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
         self.Bind(wx.EVT_BUTTON, self.OnFilter0Settings, Filter0Setting)
 
-        Filter1 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+2*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        Filter1.SetValue(filter_list[0])
+        self.Filter1 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+2*yConstantFilters), size=(xBoxSize,-1), choices=self.filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.Filter1.SetValue(self.filter_list[0])
         Filter1Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+2*yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
         self.Bind(wx.EVT_BUTTON, self.OnFilter1Settings, Filter1Setting)
 
-        Filter2 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+3*yConstantFilters), size=(xBoxSize,-1), choices=filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
-        Filter2.SetValue(filter_list[0])
+        self.Filter2 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+3*yConstantFilters), size=(xBoxSize,-1), choices=self.filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.Filter2.SetValue(self.filter_list[0])
         Filter2Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+3*yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
         self.Bind(wx.EVT_BUTTON, self.OnFilter2Settings, Filter2Setting)
 
-        filter_button = wx.Button(self.bottompanel, label=">>>", pos=((1*displaySize[0]/3)-3*seperatorConstant, yOffsetFilters+7*yConstantFilters/3))
+        self.Filter3 = wx.ComboBox(self.bottompanel, pos=(xOffsetFilters, yOffsetFilters+4*yConstantFilters), size=(xBoxSize,-1), choices=self.filter_list, style=wx.CB_DROPDOWN|wx.CB_READONLY)
+        self.Filter3.SetValue(self.filter_list[0])
+        Filter3Setting = wx.BitmapButton(self.bottompanel, id=-1, bitmap=settingsImage, pos=(xBoxSize + 2*xOffsetFilters, yOffsetFilters+4*yConstantFilters), size = (3*settingsImage.GetWidth()/4, 3*settingsImage.GetHeight()/4))
+        self.Bind(wx.EVT_BUTTON, self.OnFilter3Settings, Filter3Setting)
+
+        filter_button = wx.Button(self.bottompanel, label=">>>", pos=((1*displaySize[0]/3)-2.5*seperatorConstant, yOffsetFilters+7*yConstantFilters/3))
         self.Bind(wx.EVT_BUTTON, self.OnFilter, filter_button)
         #Seperator
         self.ln = wx.StaticLine(self.bottompanel, -1, pos= ((1*displaySize[0]/3)-seperatorConstant, 0), size=(10,200), style=wx.LI_VERTICAL)
@@ -337,6 +277,9 @@ class Dragon(wx.Frame):
         self.Maximize()
 
     def OnOpen(self, e):
+        global num_lines, original_data
+        wildcard = "Python source (*.txt)|*.txt|" \
+            "All files (*.*)|*.*"
         dlg = wx.FileDialog(
             self, message="Choose a file",
             defaultDir=self.currentDirectory, 
@@ -345,30 +288,32 @@ class Dragon(wx.Frame):
             style=wx.OPEN | wx.MULTIPLE | wx.CHANGE_DIR
             )
         if dlg.ShowModal() == wx.ID_OK:
-            global isFileImported 
-            isFileImported = True
+            original_data = []
+            self.isFileImported = True
             self.textL.Clear()
             self.textL.SetEditable(True)
-            paths = dlg.GetPaths()
-            viewParser(paths)
-            self.textL.AppendText("ACCEL_X |  ACCEL_Y  |  ACCEL_Z   |   GYRO_X  |   GYRO_Y   |   GYRO_Z  |\n")
+            path = dlg.GetPaths()
+            num_lines = self.parseFile.GetLineCount(path)
+            original_data = self.parseFile.parser(path)
+            formatted_data = self.parseFile.OriginalWindowView(original_data)
             for i in range(0, num_lines):
-                self.textL.AppendText(FORMATTED_DATA[i])
+                self.textL.AppendText(formatted_data[i])
                 self.textL.AppendText('\n')
             self.textL.SetEditable(False)
         dlg.Destroy()
 
     #Filter
     def OnFilter0Settings(self, e):
-        FilterFrame(0, Filter0.GetCurrentSelection())
+        FilterFrame(0, self.Filter0.GetCurrentSelection())
 
     def OnFilter1Settings(self, e):
-        #Given 1 - Blah -> (int)1
-        FilterFrame(1, Filter1.GetCurrentSelection())
+        FilterFrame(1, self.Filter1.GetCurrentSelection())
 
     def OnFilter2Settings(self, e):
-        #Given 1 - Blah -> (int)1
-        FilterFrame(2, Filter2.GetCurrentSelection())
+        FilterFrame(2, self.Filter2.GetCurrentSelection())
+
+    def OnFilter3Settings(self, e):
+    	FilterFrame(3, self.Filter3.GetCurrentSelection())
 
     def OnFilter(self, e):
         global isFileImported
@@ -379,16 +324,13 @@ class Dragon(wx.Frame):
             wx.MessageBox("Import File First")
     #Graph
     def OnCBX(self, e):
-        global CBX_val
-        CBX_val =e.IsChecked()
+        self.CBX_val =e.IsChecked()
 
     def OnCBY(self, e):
-        global CBY_val
-        CBY_val =e.IsChecked()
+        self.CBY_val =e.IsChecked()
 
     def OnCBZ(self, e):
-        global CBZ_val
-        CBZ_val =e.IsChecked()
+        self.CBZ_val =e.IsChecked()
 
     def OnGraph(self, e):
         global isFileImported
@@ -420,8 +362,6 @@ class Dragon(wx.Frame):
         hyper1 = hl.HyperLinkCtrl(self.bottompanel, -1, "Basic Electronixs", pos=(100, 250), URL="http://www.BasicElectronixs.com/")
         self.Close()
 
-    #def OnTextChange(self, e):
-        #self.textL.Undo()
     def OnUndoKeyPress(self, e):
         if wx.Window.FindFocus() == self.textL:
             self.textL.Undo()
@@ -445,7 +385,6 @@ class Dragon(wx.Frame):
             self.OnRedoKeyPress(self)
         else:
             e.Skip()
-
 
 
 def main():
