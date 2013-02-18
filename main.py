@@ -4,7 +4,6 @@ import wx.lib.agw.hyperlink as hl
 
 from pylab import *
 from scipy import signal
-from scipy.signal import lfilter, firwin
 from matplotlib import pyplot
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wx import NavigationToolbar2Wx
@@ -14,34 +13,103 @@ from numpy import sin, arange, pi
 import parser
 import DFfilters
 
+parseFile = parser.parse()
+fil = DFfilters.filters()
 num_lines = 10;
 original_data = []
 modified_data = []
-
+#---File imported---#
+isFileImported = False
 
 class FilterFrame(wx.Frame):
+    LPFText1 = None
+    LPFText2 = None
+    LPF_default_button = None
 
-    title = "DF Stats"
-    #Lowest value priorities are done first
+    filter_button = None
     def __init__(self, priority, value):
-        wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
-        self.SetSize((400, 400))
-        self.SetTitle('DF Smart Data')
-        self.Centre()
-        self.Show(True)
+        global filter_button
 
-        if value==1:
-            fil.LPF(priority, numtaps, cut_off_freq)
-            #FORMATTED_DATA = LPF(priority, numtaps, cut_off_freq)
-        elif value==2:
-            fil.Simple_Moving_Average()
-            #FORMATTED_DATA = Simple_Moving_Average()
-        elif value==3:
-            fil.Exponential_Moving_Average()
-        elif value==4:
-            fil.Weighted_Mean()
+        if isFileImported == True and value!=0:
+            wx.Frame.__init__(self, wx.GetApp().TopWindow, title="DF Filters")
+            self.SetSize((400, 160))
+            self.SetTitle('DF Smart Data')
+            self.Centre()
+            self.Show(True)
+
+            global original_data, modified_data
+            if value==1:
+                global LPFText1, LPFText2, LPF_default_button
+                wx.StaticText(self, label="Cut-Off Frequency", pos=(40, 20))
+                LPFText1 = wx.TextCtrl(self, pos=(180, 20))
+                LPFText1.AppendText(str(fil.LPF_Get_Cut_Off()))
+                LPFText1.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
+                
+                wx.StaticText(self, label="Numtaps", pos=(40, 50))
+                LPFText2 = wx.TextCtrl(self, pos=(180, 50))
+                LPFText2.AppendText(str(fil.LPF_Get_NumTaps()))
+                LPFText2.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
+
+                LPF_default_button = wx.Button(self, label="Default Settings", pos=(40, 80))
+                self.Bind(wx.EVT_BUTTON, self.OnLPFDefault, LPF_default_button)
+
+                filter_button = wx.Button(self, label=">>", pos=(290, 35))
+                self.Bind(wx.EVT_BUTTON, self.OnLPFFilterGo, filter_button)
+
+            elif value==2:
+                fil.Simple_Moving_Average()
+                #FORMATTED_DATA = Simple_Moving_Average()
+            elif value==3:
+                fil.Exponential_Moving_Average()
+            elif value==4:
+                fil.Weighted_Mean()
+            else:
+                print "NULL"
+            
+                self.Show(True)
+
+        elif isFileImported == False:
+            wx.MessageBox("Import File First")
+
         else:
-            print "NULL"
+            wx.MessageBox("No settings found")
+
+    def OnLPFDefault(self, e):
+        global LPFText1, LPFText2
+        LPFText1.Clear()
+        LPFText1.AppendText(str(fil.LPF_Default_Cut_Off()))
+        LPFText2.Clear()
+        LPFText2.AppendText(str(fil.LPF_Default_NumTaps()))
+
+    def OnLPFFilterGo(self, e):
+        fil.LPF_Set_Cut_Off(LPFText1.GetValue())
+        fil.LPF_Set_NumTaps(LPFText2.GetValue())
+        wx.MessageBox("Settings Applied!")
+
+    def OnUndoKeyPress(self, e):
+        if wx.Window.FindFocus() == self.Text1:
+            self.Text1.Undo()
+        else:
+            self.Text2.Undo()
+
+    def OnRedoKeyPress(self, e):
+        if wx.Window.FindFocus() == self.Text1:
+            self.Text1.Redo()
+        else:
+            self.Text2.Redo()
+            
+
+    def OnKeyPress(self, e):
+        keycode = e.GetKeyCode()
+        #Undo Event
+        if keycode == 90 and e.CmdDown():
+            self.OnUndoKeyPress(self)
+        #Redo Event
+        elif keycode == 89 and e.CmdDown():
+            self.OnRedoKeyPress(self)
+        else:
+            e.Skip()
+
 
 class GraphFrame(wx.Frame):
 
@@ -81,20 +149,17 @@ class StatsFrame(wx.Frame):
         self.Show(True)
 
 class Dragon(wx.Frame):
-    parseFile = parser.parse()
     filter_list = ['--------------', 'Low Pass Filter', 'Simple Moving Average', 'Exponential Moving Average', 'Weighted Mean']
     Filter0 = None
     Filter1 = None
     Filter2 = None
     Filter3 = None
-    fil = DFfilters.filters()
+
     #Graph
     #---CheckBox---#
     CBX_val = False
     CBY_val = False
     CBZ_val = False
-    #---File imported---#
-    isFileImported = False
 
     def __init__(self, *args, **kwargs):
         super(Dragon, self).__init__(*args, **kwargs)
@@ -288,14 +353,15 @@ class Dragon(wx.Frame):
             style=wx.OPEN | wx.MULTIPLE | wx.CHANGE_DIR
             )
         if dlg.ShowModal() == wx.ID_OK:
+            global isFileImported
             original_data = []
-            self.isFileImported = True
+            isFileImported = True
             self.textL.Clear()
             self.textL.SetEditable(True)
             path = dlg.GetPaths()
-            num_lines = self.parseFile.GetLineCount(path)
-            original_data = self.parseFile.parser(path)
-            formatted_data = self.parseFile.OriginalWindowView(original_data)
+            num_lines = parseFile.GetLineCount(path)
+            original_data = parseFile.parser(path)
+            formatted_data = parseFile.WindowView(original_data)
             for i in range(0, num_lines):
                 self.textL.AppendText(formatted_data[i])
                 self.textL.AppendText('\n')
@@ -317,9 +383,41 @@ class Dragon(wx.Frame):
 
     def OnFilter(self, e):
         global isFileImported
+        global original_data, modified_data
         if isFileImported == True:
+            cut_off_freq = fil.LPF_Get_Cut_Off()
+            numtaps = fil.LPF_Get_NumTaps()
+
+            value0 = self.Filter0.GetCurrentSelection()
+            if value0==1:
+                modified_data = fil.LPF(original_data, cut_off_freq, numtaps)
+            else:
+                print "Placeholder"
+            value1 = self.Filter1.GetCurrentSelection()
+            if value1==1:
+                modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
+            else:
+                print "Placeholder"
+            value2 = self.Filter2.GetCurrentSelection()
+            if value2==1:
+                modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
+            else:
+                print "Placeholder"
+            value3 = self.Filter3.GetCurrentSelection()
+            if value3==1:
+                modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
+            else:
+                print "Placeholder"
+
             self.textR.Clear()
-            self.textR.AppendText("CHECK")
+            formatted_data = parseFile.WindowView(modified_data)
+            self.textR.SetEditable(True)
+            self.textR.Clear()
+            for i in range(0, num_lines):
+                self.textR.AppendText(formatted_data[i])
+                self.textR.AppendText('\n')
+            self.textR.SetEditable(False)
+
         else:
             wx.MessageBox("Import File First")
     #Graph
@@ -363,16 +461,18 @@ class Dragon(wx.Frame):
         self.Close()
 
     def OnUndoKeyPress(self, e):
+        global textR
         if wx.Window.FindFocus() == self.textL:
             self.textL.Undo()
         else:
-            self.textR.Undo()
+            textR.Undo()
 
     def OnRedoKeyPress(self, e):
+        global textR
         if wx.Window.FindFocus() == self.textL:
             self.textL.Redo()
         else:
-            self.textR.Redo()
+            textR.Redo()
             
 
     def OnKeyPress(self, e):

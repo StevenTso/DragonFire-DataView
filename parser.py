@@ -54,10 +54,10 @@ class parse:
 		self.OriginalData.append(GYRO_Z)
 		return self.OriginalData
 
-	def OriginalWindowView(self, data):
+	def WindowView(self, data):
 		global num_lines
 		Formatted_Data = []
-		
+		print data
 		ACCEL_X = data[0]
 		ACCEL_Y = data[1]
 		ACCEL_Z = data[2]
