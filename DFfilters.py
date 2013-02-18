@@ -4,6 +4,8 @@ class filters:
 	LPF_numtaps = 40
 	SMA_n = 5
 	EMA_a = 0.5
+	MA_x_prev = 0.5
+	MA_x_cur = 0.5
 
 	def LPF_Default_Cut_Off(self):
 		return 200
@@ -29,7 +31,7 @@ class filters:
 
 	def LPF_Get_Freq_Limit(self):
 		return 500
-	
+
 	def	LPF(self, data, cut_off_freq, numtaps):
 		global LPF_cut_off_freq, LPF_numtaps
 		LPF_cut_off_freq = int(cut_off_freq)
@@ -184,5 +186,50 @@ class filters:
 
 		return output_data
 
-	def Weighted_Mean(self):
-		print "Weighted Mean"
+	def MA_Default_Prev(self):
+		return 0.5
+
+	def MA_Default_Cur(self):
+		return 0.5
+
+	def MA_Get_Prev(self):
+		global MA_x_prev
+		return self.MA_x_prev
+
+	def MA_Get_Cur(self):
+		global MA_x_cur
+		return self.MA_x_cur
+
+	def MA_Set_Prev(self, value):
+		global MA_x_prev
+		MA_x_prev = value
+
+	def MA_Set_Cur(self, value):
+		global MA_x_cur
+		MA_x_cur = value
+
+	def Moving_Average(self, data, x):
+		output_data = []
+
+		ACCEL_X = data[0]
+		ACCEL_Y = data[1]
+		ACCEL_Z = data[2]
+		GYRO_X = data[3]
+		GYRO_Y = data[4]
+		GYRO_Z = data[5]
+
+		ACCEL_X_filtered_signal = self.EMA_Algo(ACCEL_X, x)
+		ACCEL_Y_filtered_signal = self.EMA_Algo(ACCEL_Y, x)
+		ACCEL_Z_filtered_signal = self.EMA_Algo(ACCEL_Z, x)
+		GYRO_X_filtered_signal = self.EMA_Algo(GYRO_X, x)
+		GYRO_Y_filtered_signal = self.EMA_Algo(GYRO_Y, x)
+		GYRO_Z_filtered_signal = self.EMA_Algo(GYRO_Z, x)
+
+		output_data.append(ACCEL_X_filtered_signal)
+		output_data.append(ACCEL_Y_filtered_signal)
+		output_data.append(ACCEL_Z_filtered_signal)
+		output_data.append(GYRO_X_filtered_signal)
+		output_data.append(GYRO_Y_filtered_signal)
+		output_data.append(GYRO_Z_filtered_signal)
+
+		return output_data

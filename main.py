@@ -37,6 +37,9 @@ class FilterFrame(wx.Frame):
     SMA_default_button = None
     EMA_Text1 = None
     EMA_default_button = None
+    MAText1 = None
+    MAText2 = None
+    MA_default_button = None
 
     filter_button = None
     def __init__(self, priority, value):
@@ -100,17 +103,54 @@ class FilterFrame(wx.Frame):
 
                 self.Show(True)
             elif value==4:
-                fil.Weighted_Mean()
-            else:
-                print "NULL"
-            
+                global MAText1, MAText2, MA_default_button
+                self.SetSize((400, 160))
+                wx.StaticText(self, label="Weight (previous)", pos=(40, 20))
+                MAText1 = wx.TextCtrl(self, pos=(180, 20))
+                MAText1.AppendText(str(fil.MA_Get_Prev()))
+                MAText1.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
+                
+                wx.StaticText(self, label="Weight (current)", pos=(40, 50))
+                MAText2 = wx.TextCtrl(self, pos=(180, 50))
+                MAText2.AppendText(str(fil.MA_Get_Cur()))
+                MAText2.Bind(wx.EVT_KEY_DOWN, self.OnKeyPress)
+
+                MA_default_button = wx.Button(self, label="Default Settings", pos=(40, 80))
+                self.Bind(wx.EVT_BUTTON, self.OnMADefault, MA_default_button)
+
+                filter_button = wx.Button(self, label=">>", pos=(290, 35))
+                self.Bind(wx.EVT_BUTTON, self.OnMAFilterGo, filter_button)
+
                 self.Show(True)
+            else:
+                pass
 
         elif isFileImported == False:
             wx.MessageBox("Import File First")
 
         else:
             wx.MessageBox("No settings found")
+
+    def OnLPFDefault(self, e):
+        global LPFText1, LPFText2
+        LPFText1.Clear()
+        LPFText1.AppendText(str(fil.LPF_Default_Cut_Off()))
+        LPFText2.Clear()
+        LPFText2.AppendText(str(fil.LPF_Default_NumTaps()))
+
+    def OnLPFFilterGo(self, e):
+        global LPFText1, LPFText2
+        cut_off_val = LPFText1.GetValue()
+        numtaps_val = LPFText2.GetValue()
+        if(cut_off_val.isdigit() and numtaps_val.isdigit()):
+            if(int(cut_off_val)<fil.LPF_Get_Freq_Limit()):
+                fil.LPF_Set_Cut_Off(int(cut_off_val))
+                fil.LPF_Set_NumTaps(int(numtaps_val))
+                wx.MessageBox("Settings Applied!")
+            else:
+                wx.MessageBox("Lower the value of the cut-off")
+        else:
+            wx.MessageBox("Please enter whole digits!")
 
     def OnLPFDefault(self, e):
         global LPFText1, LPFText2
@@ -156,7 +196,6 @@ class FilterFrame(wx.Frame):
         global EMA_Text1
         value = EMA_Text1.GetValue()
         if(isFloat(value)):
-            print float(value)
             if(float(value)<=1):
                 fil.EMA_Set_A(float(value))
                 wx.MessageBox("Settings Applied!")
@@ -164,6 +203,28 @@ class FilterFrame(wx.Frame):
                 wx.MessageBox("Please enter a number less than or equal to 1!")
         else:
             wx.MessageBox("Please enter an number!")
+
+
+    def OnMADefault(self, e):
+        global MAText1, MAText2
+        MAText1.Clear()
+        MAText1.AppendText(str(fil.MA_Default_Prev()))
+        MAText2.Clear()
+        MAText2.AppendText(str(fil.MA_Default_Cur()))
+
+    def OnMAFilterGo(self, e):
+        global MAText1, MAText2
+        pre_val = MAText1.GetValue()
+        cur_val = MAText2.GetValue()
+        if(isFloat(pre_val) and isFloat(cur_val)):
+            if((float(pre_val)+float(cur_val))==1):
+                fil.MA_Set_Prev(float(pre_val))
+                fil.MA_Set_Cur(float(cur_val))
+                wx.MessageBox("Settings Applied!")
+            else:
+                wx.MessageBox("Make sure values add up to 1")
+        else:
+            wx.MessageBox("Please enter whole digits!")
 
     def OnUndoKeyPress(self, e):
         focus = wx.Window.FindFocus()
@@ -477,6 +538,8 @@ class Dragon(wx.Frame):
             n = fil.SMA_Get_N()
             #EMA
             a = fil.EMA_Get_A()
+            #MA
+            x = fil.MA_Get_Cur()
 
             num_lines = parseFile.GetLineCount(path)
             original_data[:] = []
@@ -489,20 +552,23 @@ class Dragon(wx.Frame):
             elif value0==2:
                 modified_data = fil.Simple_Moving_Average(original_data, n)
             elif value0==3:
-                print original_data
                 modified_data = fil.Exponential_Moving_Average(original_data, a)
+            elif value0==4:
+                modified_data = fil.Moving_Average(original_data, x)
             else:
-                print "Placeholder0"
+                pass
                 
             value1 = self.Filter1.GetCurrentSelection()
             if value1==1:
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
             elif value1==2:
                 modified_data = fil.Simple_Moving_Average(modified_data, n)
-            elif value0==3:
+            elif value1==3:
                 modified_data = fil.Exponential_Moving_Average(modified_data, a)
+            elif value1==4:
+                modified_data = fil.Moving_Average(modified_data, x)
             else:
-                print "Placeholder1"
+                pass
 
             value2 = self.Filter2.GetCurrentSelection()
             if value2==1:
@@ -511,8 +577,10 @@ class Dragon(wx.Frame):
                 modified_data = fil.Simple_Moving_Average(modified_data, n)
             elif value2==3:
                 modified_data = fil.Exponential_Moving_Average(modified_data, a)
+            elif value2==4:
+                modified_data = fil.Moving_Average(modified_data, x)
             else:
-                print "Placeholder2"
+                pass
 
             value3 = self.Filter3.GetCurrentSelection()
             if value3==1:
@@ -521,8 +589,10 @@ class Dragon(wx.Frame):
                 modified_data = fil.Simple_Moving_Average(modified_data, n)
             elif value3==3:
                 modified_data = fil.Exponential_Moving_Average(modified_data, a)
+            elif value3==4:
+                modified_data = fil.Moving_Average(modified_data, x)
             else:
-                print "Placeholder3"
+                pass
 
             self.textR.Clear()
             formatted_data = parseFile.WindowView(modified_data)
