@@ -14,13 +14,21 @@ import parser
 import DFfilters
 
 path = None
+#---File imported---#
+isFileImported = False
+
 parseFile = parser.parse()
 fil = DFfilters.filters()
+
 num_lines = 10;
 original_data = []
 modified_data = []
-#---File imported---#
-isFileImported = False
+
+#Graph
+#---CheckBox---#
+CBX_val = False
+CBY_val = False
+CBZ_val = False
 
 def isFloat(string):
     try:
@@ -28,6 +36,12 @@ def isFloat(string):
         return True
     except ValueError:
         return False
+
+def formatFloat(listIn):
+    f_data = []
+    for x in range(0, len(listIn)):
+        f_data.append("%0.2f" % float(listIn.pop(0)))
+    return f_data
 
 class FilterFrame(wx.Frame):
     LPFText1 = None
@@ -265,23 +279,60 @@ class GraphFrame(wx.Frame):
         wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
  
         self.SetSize((400, 400))
-        self.SetTitle('DF Smart Data')
+        self.SetTitle('DF Smart Graph')
         self.Centre()
     
-
         self.figure = Figure()
         self.canvas = FigureCanvas(self, -1, self.figure)
 
+        ACCEL_X = modified_data[0]
+        ACCEL_Y = modified_data[1]
+        ACCEL_Z = modified_data[2]
+        GYRO_X = modified_data[3]
+        GYRO_Y = modified_data[4]
+        GYRO_Z = modified_data[5]
+
         #GRAPHS
         t1 = arange(0, num_lines, 1)
-        #ACCEL_X       
-        self.axes = self.figure.add_subplot(231)
-        self.axes.plot(t1, ACCEL_X,'k--', markerfacecolor='green')
+
+        #ACCEL_X
+        subplot(231)
+        plot(t1, ACCEL_X,'k--', markerfacecolor='green')
         title('ACCEL_X')
         ylabel('Value')
-        self.Show(True)
-        #self.Fit()
-        #self.Show(True)
+
+        #ACCEL_Y
+        subplot(232)
+        plot(t1, ACCEL_Y,'k--', markerfacecolor='green')
+        title('ACCEL_Y')
+        ylabel('Value')
+
+
+        #ACCEL_Z
+        subplot(233)
+        plot(t1, ACCEL_Z,'k--', markerfacecolor='green')
+        title('ACCEL_Z')
+        ylabel('Value')
+
+        #GYRO_X
+        subplot(234)
+        plot(t1, GYRO_X,'k--', markerfacecolor='green')
+        title('GYRO_X')
+        ylabel('Value')
+
+        #GRYO_Y
+        subplot(235)
+        plot(t1, GYRO_Y,'k--', markerfacecolor='green')
+        title('GYRO_Y')
+        ylabel('Value')
+        
+        #GRYO_Z
+        subplot(236)
+        plot(t1, GYRO_Z,'k--', markerfacecolor='green')
+        title('GYRO_Z')
+        ylabel('Value')
+        
+        show()
 
 class StatsFrame(wx.Frame):
 
@@ -300,12 +351,6 @@ class Dragon(wx.Frame):
     Filter1 = None
     Filter2 = None
     Filter3 = None
-
-    #Graph
-    #---CheckBox---#
-    CBX_val = False
-    CBY_val = False
-    CBZ_val = False
 
     def __init__(self, *args, **kwargs):
         super(Dragon, self).__init__(*args, **kwargs)
@@ -488,7 +533,7 @@ class Dragon(wx.Frame):
         self.Maximize()
 
     def OnOpen(self, e):
-        global path, num_lines, original_data
+        global path, num_lines, original_data, modified_data
         wildcard = "Python source (*.txt)|*.txt|" \
             "All files (*.*)|*.*"
         dlg = wx.FileDialog(
@@ -507,6 +552,7 @@ class Dragon(wx.Frame):
             path = dlg.GetPaths()
             num_lines = parseFile.GetLineCount(path)
             original_data = parseFile.parser(path)
+            modified_data = original_data
             formatted_data = parseFile.WindowView(original_data)
             for i in range(0, num_lines):
                 self.textL.AppendText(formatted_data[i])
@@ -595,10 +641,44 @@ class Dragon(wx.Frame):
                 pass
 
             self.textR.Clear()
-            formatted_data = parseFile.WindowView(modified_data)
+            #format data before displaying
+            f_data = []
+
+
+            if(type(modified_data[0])==list):
+                ACCEL_X = modified_data[0]
+                ACCEL_Y = modified_data[1]
+                ACCEL_Z = modified_data[2]
+                GYRO_X = modified_data[3]
+                GYRO_Y = modified_data[4]
+                GYRO_Z = modified_data[5]
+
+            else:
+                ACCEL_X = modified_data[0].tolist()
+                ACCEL_Y = modified_data[1].tolist()
+                ACCEL_Z = modified_data[2].tolist()
+                GYRO_X = modified_data[3].tolist()
+                GYRO_Y = modified_data[4].tolist()
+                GYRO_Z = modified_data[5].tolist()
+
+            ACCEL_X_filtered_signal = formatFloat(ACCEL_X)
+            ACCEL_Y_filtered_signal = formatFloat(ACCEL_Y)
+            ACCEL_Z_filtered_signal = formatFloat(ACCEL_Z)
+            GYRO_X_filtered_signal = formatFloat(GYRO_X)
+            GYRO_Y_filtered_signal = formatFloat(GYRO_Y)
+            GYRO_Z_filtered_signal = formatFloat(GYRO_Z)
+
+            f_data.append(ACCEL_X_filtered_signal)
+            f_data.append(ACCEL_Y_filtered_signal)
+            f_data.append(ACCEL_Z_filtered_signal)
+            f_data.append(GYRO_X_filtered_signal)
+            f_data.append(GYRO_Y_filtered_signal)
+            f_data.append(GYRO_Z_filtered_signal)
+
+            formatted_data = parseFile.WindowView(f_data)
             self.textR.SetEditable(True)
             self.textR.Clear()
-            for i in range(0, num_lines):
+            for i in range(0, len(formatted_data)):
                 self.textR.AppendText(formatted_data[i])
                 self.textR.AppendText('\n')
             self.textR.SetEditable(False)
@@ -607,13 +687,13 @@ class Dragon(wx.Frame):
             wx.MessageBox("Import File First")
     #Graph
     def OnCBX(self, e):
-        self.CBX_val =e.IsChecked()
+        CBX_val =e.IsChecked()
 
     def OnCBY(self, e):
-        self.CBY_val =e.IsChecked()
+        CBY_val =e.IsChecked()
 
     def OnCBZ(self, e):
-        self.CBZ_val =e.IsChecked()
+        CBZ_val =e.IsChecked()
 
     def OnGraph(self, e):
         global isFileImported

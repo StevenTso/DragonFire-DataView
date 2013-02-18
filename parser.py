@@ -55,7 +55,7 @@ class parse:
 		return self.OriginalData
 
 	def WindowView(self, data):
-		global num_lines
+		Iterator = []
 		Formatted_Data = []
 		ACCEL_X = data[0]
 		ACCEL_Y = data[1]
@@ -64,8 +64,12 @@ class parse:
 		GYRO_Y = data[4]
 		GYRO_Z = data[5]
 
+		length = len(data[0])
+		for i in range(0, length):
+			Iterator.append(i)
+
 		Formatted_Data.append("ACCEL_X |  ACCEL_Y  |  ACCEL_Z   |   GYRO_X  |   GYRO_Y   |   GYRO_Z  |\n")
-		for var in range(0, num_lines):
+		for var in Iterator:
 			ax = str(ACCEL_X[var]).zfill(5) + "    |    "
 			ay = str(ACCEL_Y[var]).zfill(5) + "    |    "
 			az = str(ACCEL_Z[var]).zfill(5) + "    |    "

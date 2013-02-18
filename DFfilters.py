@@ -61,6 +61,7 @@ class filters:
 		output_data.append(GYRO_X_filtered_signal)
 		output_data.append(GYRO_Y_filtered_signal)
 		output_data.append(GYRO_Z_filtered_signal)
+
 		return output_data
 
 	def SMA_Default_N(self):
@@ -105,12 +106,20 @@ class filters:
 	def Simple_Moving_Average(self, data, n):
 		output_data = []
 
-		ACCEL_X = data[0]
-		ACCEL_Y = data[1]
-		ACCEL_Z = data[2]
-		GYRO_X = data[3]
-		GYRO_Y = data[4]
-		GYRO_Z = data[5]
+		if(type(data[0])==list):
+			ACCEL_X = data[0]
+			ACCEL_Y = data[1]
+			ACCEL_Z = data[2]
+			GYRO_X = data[3]
+			GYRO_Y = data[4]
+			GYRO_Z = data[5]
+		else:
+			ACCEL_X = data[0].tolist()
+			ACCEL_Y = data[1].tolist()
+			ACCEL_Z = data[2].tolist()
+			GYRO_X = data[3].tolist()
+			GYRO_Y = data[4].tolist()
+			GYRO_Z = data[5].tolist()
 
 		ACCEL_X_filtered_signal = self.SMA_Algo(ACCEL_X, n)
 		ACCEL_Y_filtered_signal = self.SMA_Algo(ACCEL_Y, n)
@@ -163,12 +172,21 @@ class filters:
 	def Exponential_Moving_Average(self, data, a):
 		output_data = []
 
-		ACCEL_X = data[0]
-		ACCEL_Y = data[1]
-		ACCEL_Z = data[2]
-		GYRO_X = data[3]
-		GYRO_Y = data[4]
-		GYRO_Z = data[5]
+		if(type(data[0])==list):
+			ACCEL_X = data[0]
+			ACCEL_Y = data[1]
+			ACCEL_Z = data[2]
+			GYRO_X = data[3]
+			GYRO_Y = data[4]
+			GYRO_Z = data[5]
+
+		else:
+			ACCEL_X = data[0].tolist()
+			ACCEL_Y = data[1].tolist()
+			ACCEL_Z = data[2].tolist()
+			GYRO_X = data[3].tolist()
+			GYRO_Y = data[4].tolist()
+			GYRO_Z = data[5].tolist()
 
 		ACCEL_X_filtered_signal = self.EMA_Algo(ACCEL_X, a)
 		ACCEL_Y_filtered_signal = self.EMA_Algo(ACCEL_Y, a)
@@ -210,13 +228,20 @@ class filters:
 
 	def Moving_Average(self, data, x):
 		output_data = []
-
-		ACCEL_X = data[0]
-		ACCEL_Y = data[1]
-		ACCEL_Z = data[2]
-		GYRO_X = data[3]
-		GYRO_Y = data[4]
-		GYRO_Z = data[5]
+		if(type(data[0])==list):
+			ACCEL_X = data[0]
+			ACCEL_Y = data[1]
+			ACCEL_Z = data[2]
+			GYRO_X = data[3]
+			GYRO_Y = data[4]
+			GYRO_Z = data[5]
+		else:
+			ACCEL_X = data[0].tolist()
+			ACCEL_Y = data[1].tolist()
+			ACCEL_Z = data[2].tolist()
+			GYRO_X = data[3].tolist()
+			GYRO_Y = data[4].tolist()
+			GYRO_Z = data[5].tolist()
 
 		ACCEL_X_filtered_signal = self.EMA_Algo(ACCEL_X, x)
 		ACCEL_Y_filtered_signal = self.EMA_Algo(ACCEL_Y, x)
