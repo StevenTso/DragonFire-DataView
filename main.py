@@ -278,7 +278,8 @@ class GraphFrame(wx.Frame):
 
     def __init__(self):
         wx.Frame.__init__(self, wx.GetApp().TopWindow, title=self.title)
- 
+        global original_data, modified_data
+
         self.SetSize((400, 400))
         self.SetTitle('DF Smart Graph')
         self.Centre()
@@ -624,7 +625,7 @@ class Dragon(wx.Frame):
     	FilterFrame(3, self.Filter3.GetCurrentSelection())
 
     def OnFilter(self, e):
-        global isFileImported
+        global isFileImported, path
         global original_data, modified_data
         if isFileImported == True:
             #LPF
@@ -639,21 +640,27 @@ class Dragon(wx.Frame):
 
             num_lines = parseFile.GetLineCount(path)
             original_data[:] = []
+            buff = []
             modified_data[:] = []
             original_data = parseFile.parser(path)
-
+            buff = original_data
+            
             value0 = self.Filter0.GetCurrentSelection()
             if value0==1:
-                modified_data = fil.LPF(original_data, cut_off_freq, numtaps)
+                modified_data = fil.LPF(buff, cut_off_freq, numtaps)
             elif value0==2:
-                modified_data = fil.Simple_Moving_Average(original_data, n)
+                print original_data
+                print modified_data
+                modified_data = fil.Simple_Moving_Average(buff, n)
+                print original_data
+                print modified_data
             elif value0==3:
-                modified_data = fil.Exponential_Moving_Average(original_data, a)
+                modified_data = fil.Exponential_Moving_Average(buff, a)
             elif value0==4:
-                modified_data = fil.Moving_Average(original_data, x)
+                modified_data = fil.Moving_Average(buff, x)
             else:
                 pass
-                
+            
             value1 = self.Filter1.GetCurrentSelection()
             if value1==1:
                 modified_data = fil.LPF(modified_data, cut_off_freq, numtaps)
@@ -693,7 +700,6 @@ class Dragon(wx.Frame):
             self.textR.Clear()
             #format data before displaying
             f_data = []
-
 
             if(type(modified_data[0])==list):
                 ACCEL_X = modified_data[0]
