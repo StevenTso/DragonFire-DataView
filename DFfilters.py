@@ -8,8 +8,7 @@ class filters:
 	MA_x_cur = 0.5
 
 	def LPF_Default_Cut_Off(self):
-		return 200
-
+		return 2
 	def LPF_Default_NumTaps(self):
 		return 40
 

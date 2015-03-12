@@ -8,21 +8,7 @@ class parse:
 		return 	sum(1 for line in open(stringPath, 'r'))
 
 	#Parses file and puts it into OriginalData in the form 	ACCEL_X[0], ACCEL_Y[0], ACCEL_Z[0], GYRO_X[0], GYRO_Y[0], GYRO_Z[0]
-	#Of type int											ACCEL_X[1], ACCEL_Y[1], ACCEL_Z[1], GYRO_X[1], GYRO_Y[1], GYRO_Z[1]
-	def parser(self, path):	
-		global num_lines
-		ACCEL_X = []
-		ACCEL_Y = []
-		ACCEL_Z = []
-		GYRO_X = []
-		GYRO_Y = []
-		GYRO_Z = []
 
-		stringPath = ''.join(path)
-
-		num_lines = sum(1 for line in open(stringPath, 'r'))
-
-		f = open(stringPath, 'r')
 		for var0 in range(0, num_lines):
 			line = f.readline();
 			#removes last comma and new line
@@ -48,13 +34,7 @@ class parse:
 
 		self.OriginalData.append(ACCEL_X)
 		self.OriginalData.append(ACCEL_Y)
-		self.OriginalData.append(ACCEL_Z)
-		self.OriginalData.append(GYRO_X)
-		self.OriginalData.append(GYRO_Y)
-		self.OriginalData.append(GYRO_Z)
-		return self.OriginalData
-
-	def WindowView(self, data):
+	
 		Iterator = []
 		Formatted_Data = []
 		ACCEL_X = data[0]

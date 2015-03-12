@@ -4,4 +4,4 @@ class filters:
 		self.LPF_numtaps = 40
 	
 	def	lpf(self):
-		print "TESTING"
+		print "TESNG"

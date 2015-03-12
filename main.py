@@ -11,7 +11,7 @@ from matplotlib.figure import Figure
 from numpy import sin, arange, pi
 
 import parser
-import DFfilters
+import DFfilt
 
 path = None
 #---File imported---#
